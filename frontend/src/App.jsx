@@ -15,6 +15,8 @@ import {
   PieChart,
   Pie,
   Cell,
+  AreaChart,
+  Area,
 } from 'recharts'
 
 const API = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '')
@@ -645,60 +647,96 @@ function GitHubSection({ data, canRefresh = false, onRangeChange }) {
         </div>
       </div>
 
-      {/* Weekly Activity */}
+      {/* Weekly Activity — smooth filled area chart */}
       {consistency?.weekly_data && consistency.weekly_data.length > 0 && (
         <div className="card">
           <p className="eyebrow">Weekly activity</p>
           <h3>Contributions per week</h3>
-          <BarChart
-            data={consistency.weekly_data}
-            labelKey="week" valueKey="contributions"
-            color="var(--good)" height={120}
-          />
+          <ResponsiveContainer width="100%" height={160}>
+            <AreaChart data={consistency.weekly_data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="weeklyFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#34d399" stopOpacity={0.35} />
+                  <stop offset="100%" stopColor="#34d399" stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid stroke="rgba(148,163,184,0.10)" strokeDasharray="3 3" />
+              <XAxis
+                dataKey="week"
+                tick={{ fill: '#7e93af', fontSize: 11 }}
+                axisLine={{ stroke: 'rgba(148,163,184,0.18)' }}
+                tickLine={false}
+                tickFormatter={v => typeof v === 'string' && v.length > 5 ? v.slice(5) : v}
+              />
+              <YAxis
+                tick={{ fill: '#7e93af', fontSize: 11 }}
+                axisLine={{ stroke: 'rgba(148,163,184,0.18)' }}
+                tickLine={false}
+                allowDecimals={false}
+              />
+              <Tooltip contentStyle={{ background: '#09111d', border: '1px solid rgba(148,163,184,0.16)', borderRadius: 12, color: '#e5eefc' }} />
+              <Area
+                type="monotone"
+                dataKey="contributions"
+                stroke="#34d399"
+                strokeWidth={2.5}
+                fill="url(#weeklyFill)"
+                dot={false}
+                activeDot={{ r: 4, fill: '#34d399', stroke: '#09111d', strokeWidth: 2 }}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
       )}
 
-      {/* Language Distribution */}
-      {langSegments.length > 0 && (
-        <div className="card">
-          <p className="eyebrow">Languages used</p>
-          <h3>Repository language distribution</h3>
-          <div className="lang-layout">
-            <div className="github-pie-wrap compact">
-              <DonutChart segments={langSegments} label={langEntries.length} sublabel="Languages" />
-            </div>
-            <div className="lang-list">
-              {langEntries.map(([name, count]) => (
-                <div key={name} className="lang-item">
-                  <span className="lang-dot" style={{ background: LANG_COLORS[name] || '#8b949e' }} />
-                  <span className="lang-name">{name}</span>
-                  <span className="lang-count">{count} repos</span>
+      {/* Language Distribution (left) + Top Repos (right) — side by side */}
+      {(langSegments.length > 0 || (top_repositories && top_repositories.length > 0)) && (
+        <div className="lang-repos-row">
+          {langSegments.length > 0 && (
+            <div className="card lang-repos-card">
+              <p className="eyebrow">Languages used</p>
+              <h3>Repository language distribution</h3>
+              <div className="lang-repos-scroll">
+                <div className="lang-layout">
+                  <div className="github-pie-wrap compact">
+                    <DonutChart segments={langSegments} label={langEntries.length} sublabel="Languages" />
+                  </div>
+                  <div className="lang-list">
+                    {langEntries.map(([name, count]) => (
+                      <div key={name} className="lang-item">
+                        <span className="lang-dot" style={{ background: LANG_COLORS[name] || '#8b949e' }} />
+                        <span className="lang-name">{name}</span>
+                        <span className="lang-count">{count} repos</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ))}
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          )}
 
-      {/* Top Repos */}
-      {top_repositories && top_repositories.length > 0 && (
-        <div className="card">
-          <p className="eyebrow">Top repositories</p>
-          <h3>Most popular projects</h3>
-          <div className="repos-grid">
-            {top_repositories.map(r => (
-              <a key={r.name} href={r.url} target="_blank" rel="noreferrer" className="repo-card">
-                <h4 className="repo-name">📁 {r.name}</h4>
-                {r.description && <p className="repo-desc">{r.description.slice(0, 80)}{r.description.length > 80 ? '…' : ''}</p>}
-                <div className="repo-meta">
-                  {r.language && <span className="repo-lang"><span className="lang-dot" style={{ background: LANG_COLORS[r.language] || '#8b949e' }} />{r.language}</span>}
-                  <span>⭐ {r.stars}</span>
-                  <span>🍴 {r.forks}</span>
+          {top_repositories && top_repositories.length > 0 && (
+            <div className="card lang-repos-card">
+              <p className="eyebrow">Top repositories</p>
+              <h3>Most popular projects</h3>
+              <div className="lang-repos-scroll">
+                <div className="repos-grid repos-grid-vertical">
+                  {top_repositories.map(r => (
+                    <a key={r.name} href={r.url} target="_blank" rel="noreferrer" className="repo-card">
+                      <h4 className="repo-name">📁 {r.name}</h4>
+                      {r.description && <p className="repo-desc">{r.description.slice(0, 80)}{r.description.length > 80 ? '…' : ''}</p>}
+                      <div className="repo-meta">
+                        {r.language && <span className="repo-lang"><span className="lang-dot" style={{ background: LANG_COLORS[r.language] || '#8b949e' }} />{r.language}</span>}
+                        <span>⭐ {r.stars}</span>
+                        <span>🍴 {r.forks}</span>
+                      </div>
+                      <p className="repo-date">Updated {fmtDate(r.pushed_at)}</p>
+                    </a>
+                  ))}
                 </div>
-                <p className="repo-date">Updated {fmtDate(r.pushed_at)}</p>
-              </a>
-            ))}
-          </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </section>

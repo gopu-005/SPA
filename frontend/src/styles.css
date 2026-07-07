@@ -509,7 +509,12 @@ a { color: inherit; text-decoration: none; }
   font-size: 0.95rem;
 }
 
-.github-secondary-grid {
+.insight-below-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.insight-below-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
@@ -570,57 +575,110 @@ a { color: inherit; text-decoration: none; }
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .github-secondary-grid {
+  .insight-below-row {
     grid-template-columns: 1fr;
   }
 }
 
-/* ── Overview Card ─────────────────────────────────────────────────── */
-.overview-card {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 24px;
-  padding: 2rem;
-  box-shadow: var(--shadow);
-}
+/* ── Overview Card (removed) ──────────────────────────────────────── */
 
-.overview-top {
+/* ── Floating Platform Nav ────────────────────────────────────────── */
+.floating-platform-nav {
+  position: fixed;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 50;
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 2rem;
-  margin-bottom: 1.5rem;
+  flex-direction: column;
+  gap: 0.65rem;
 }
 
-.overview-top h2 { margin: 0; font-size: 1.35rem; font-weight: 800; }
-.summary-text { color: var(--muted); font-size: 0.95rem; line-height: 1.7; margin: 0.75rem 0 0; }
-
-.overview-ring { flex-shrink: 0; }
-
-.score-comparison {
-  display: grid; gap: 0.85rem;
-}
-
-.score-bar-item { }
-
-.score-bar-header {
-  display: flex; justify-content: space-between;
-  margin-bottom: 0.35rem;
-  font-size: 0.88rem;
-}
-.score-bar-header span { color: var(--muted); }
-.score-bar-header strong { font-weight: 700; }
-
-.score-bar-track {
-  height: 8px;
-  border-radius: 999px;
-  background: rgba(148, 163, 184, 0.08);
+.floating-nav-btn {
+  appearance: none;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  background: rgba(14, 20, 36, 0.92);
+  backdrop-filter: blur(16px);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0.75rem;
+  border-radius: 14px 0 0 14px;
+  width: 52px;
   overflow: hidden;
+  transition: width 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+              background 0.25s ease,
+              border-color 0.25s ease,
+              box-shadow 0.25s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
-.score-bar-fill {
-  height: 100%; border-radius: inherit;
-  transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+.floating-nav-btn:hover {
+  width: 148px;
+  background: rgba(14, 20, 36, 0.98);
+  border-color: var(--nav-accent, var(--accent));
+  box-shadow: 0 4px 28px rgba(0, 0, 0, 0.45), 0 0 12px color-mix(in srgb, var(--nav-accent, var(--accent)) 25%, transparent);
+}
+
+.floating-nav-icon {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--nav-accent, var(--accent));
+}
+
+.floating-nav-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.floating-nav-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+  opacity: 0;
+  margin-left: 0;
+  transition: opacity 0.25s ease 0.08s, margin-left 0.3s ease;
+  color: var(--nav-accent, var(--accent));
+}
+
+.floating-nav-btn:hover .floating-nav-label {
+  opacity: 1;
+  margin-left: 0.55rem;
+}
+
+/* Specific platform icon colors on the nav */
+.floating-nav-github { --nav-accent: #34d399; }
+.floating-nav-leetcode { --nav-accent: #fbbf24; }
+.floating-nav-kaggle { --nav-accent: #7dd3fc; }
+
+@media (max-width: 768px) {
+  .floating-platform-nav {
+    top: auto;
+    bottom: 1rem;
+    right: 1rem;
+    transform: none;
+    flex-direction: row;
+  }
+
+  .floating-nav-btn {
+    border-radius: 14px;
+    width: 44px;
+    padding: 0.6rem;
+  }
+
+  .floating-nav-btn:hover {
+    width: 44px;
+  }
+
+  .floating-nav-label {
+    display: none;
+  }
 }
 
 /* ── Platform Section ──────────────────────────────────────────────── */
@@ -835,7 +893,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 /* ── Bar Chart ─────────────────────────────────────────────────────── */
-.bar-chart-section { }
+.bar-chart-section { min-width: 0; }
 
 .chart-title { margin: 0 0 0.5rem; font-size: 0.9rem; font-weight: 600; }
 

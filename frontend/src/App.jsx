@@ -487,61 +487,65 @@ function GitHubAnalyticsPanel({ data, canRefresh, onRangeChange }) {
         <MetricTile label="Top repositories" value={`${(data?.top_repositories || []).length || 0}`} detail="Highlighted by quality signals" />
       </div>
 
+      {/* Teacher Insight */}
       <div className="card github-insight-card">
         <p className="eyebrow">Teacher insight</p>
         <p className="teacher-insight">{insight}</p>
       </div>
 
-      <div className="github-secondary-grid">
-        <div className="card chart-card">
-          <p className="eyebrow">Technical skill distribution</p>
-          <h3>Repository language mix</h3>
-          {skillData.length > 0 ? (
-            <div className="donut-row github-donut-row">
-              <div className="github-pie-wrap">
-                <ResponsiveContainer width="100%" height={240}>
-                  <PieChart>
-                    <Pie data={skillData} dataKey="value" nameKey="name" innerRadius={62} outerRadius={92} paddingAngle={3}>
-                      {skillData.map((entry, index) => <Cell key={entry.name} fill={PIE_PALETTE[index % PIE_PALETTE.length]} />)}
-                    </Pie>
-                    <Tooltip contentStyle={{ background: '#09111d', border: '1px solid rgba(148,163,184,0.16)', borderRadius: 12, color: '#e5eefc' }} />
-                  </PieChart>
-                </ResponsiveContainer>
+      {/* Horizontal grid below teacher insight: upper row = tech skill + project quality, lower row = collaboration */}
+      <div className="insight-below-grid">
+        <div className="insight-below-row">
+          <div className="card chart-card">
+            <p className="eyebrow">Technical skill distribution</p>
+            <h3>Repository language mix</h3>
+            {skillData.length > 0 ? (
+              <div className="donut-row github-donut-row">
+                <div className="github-pie-wrap">
+                  <ResponsiveContainer width="100%" height={240}>
+                    <PieChart>
+                      <Pie data={skillData} dataKey="value" nameKey="name" innerRadius={62} outerRadius={92} paddingAngle={3}>
+                        {skillData.map((entry, index) => <Cell key={entry.name} fill={PIE_PALETTE[index % PIE_PALETTE.length]} />)}
+                      </Pie>
+                      <Tooltip contentStyle={{ background: '#09111d', border: '1px solid rgba(148,163,184,0.16)', borderRadius: 12, color: '#e5eefc' }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="difficulty-legend skill-legend">
+                  {skillData.map((entry, index) => (
+                    <div key={entry.name} className="diff-item">
+                      <span className="diff-dot" style={{ background: PIE_PALETTE[index % PIE_PALETTE.length] }} />
+                      {entry.name}
+                      <strong>{entry.value}</strong>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="difficulty-legend skill-legend">
-                {skillData.map((entry, index) => (
-                  <div key={entry.name} className="diff-item">
-                    <span className="diff-dot" style={{ background: PIE_PALETTE[index % PIE_PALETTE.length] }} />
-                    {entry.name}
-                    <strong>{entry.value}</strong>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <ChartEmpty title="Technical skill distribution" message="Add GitHub repositories to reveal language distribution." />
-          )}
+            ) : (
+              <ChartEmpty title="Technical skill distribution" message="Add GitHub repositories to reveal language distribution." />
+            )}
+          </div>
+
+          <div className="card chart-card">
+            <p className="eyebrow">Project quality</p>
+            <h3>Explainable repo scoring</h3>
+            {projectQuality.length > 0 ? (
+              <ResponsiveContainer width="100%" height={240}>
+                <RechartsBarChart data={projectQuality} layout="vertical" margin={{ top: 8, right: 12, left: 12, bottom: 8 }}>
+                  <CartesianGrid stroke="rgba(148,163,184,0.12)" strokeDasharray="3 3" horizontal={false} />
+                  <XAxis type="number" domain={[0, 100]} tick={{ fill: '#7e93af', fontSize: 12 }} axisLine={{ stroke: 'rgba(148,163,184,0.18)' }} tickLine={false} />
+                  <YAxis type="category" dataKey="name" width={110} tick={{ fill: '#e5eefc', fontSize: 12 }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{ background: '#09111d', border: '1px solid rgba(148,163,184,0.16)', borderRadius: 12, color: '#e5eefc' }} formatter={(value, name, payload) => [payload?.payload?.explanation || value, 'Quality signals']} />
+                  <Bar dataKey="score" fill="#38bdf8" radius={[0, 10, 10, 0]} />
+                </RechartsBarChart>
+              </ResponsiveContainer>
+            ) : (
+              <ChartEmpty title="Project quality" message="Top repositories will appear here once GitHub repository metadata is available." />
+            )}
+          </div>
         </div>
 
         <div className="card chart-card">
-          <p className="eyebrow">Project quality</p>
-          <h3>Explainable repo scoring</h3>
-          {projectQuality.length > 0 ? (
-            <ResponsiveContainer width="100%" height={240}>
-              <RechartsBarChart data={projectQuality} layout="vertical" margin={{ top: 8, right: 12, left: 12, bottom: 8 }}>
-                <CartesianGrid stroke="rgba(148,163,184,0.12)" strokeDasharray="3 3" horizontal={false} />
-                <XAxis type="number" domain={[0, 100]} tick={{ fill: '#7e93af', fontSize: 12 }} axisLine={{ stroke: 'rgba(148,163,184,0.18)' }} tickLine={false} />
-                <YAxis type="category" dataKey="name" width={110} tick={{ fill: '#e5eefc', fontSize: 12 }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ background: '#09111d', border: '1px solid rgba(148,163,184,0.16)', borderRadius: 12, color: '#e5eefc' }} formatter={(value, name, payload) => [payload?.payload?.explanation || value, 'Quality signals']} />
-                <Bar dataKey="score" fill="#38bdf8" radius={[0, 10, 10, 0]} />
-              </RechartsBarChart>
-            </ResponsiveContainer>
-          ) : (
-            <ChartEmpty title="Project quality" message="Top repositories will appear here once GitHub repository metadata is available." />
-          )}
-        </div>
-
-        <div className="card chart-card chart-card-wide">
           <p className="eyebrow">Collaboration activity</p>
           <h3>Opened vs closed contribution mix</h3>
           {collaboration.length > 0 ? (
@@ -583,8 +587,7 @@ function GitHubSection({ data, canRefresh = false, onRangeChange }) {
 
   return (
     <section className="platform-section" id="section-github">
-      <GitHubAnalyticsPanel data={data} canRefresh={canRefresh} onRangeChange={onRangeChange} />
-
+      {/* Profile header + stats ABOVE analytics */}
       <div className="platform-header">
         <div className="platform-id">
           {profile?.avatar && <img src={profile.avatar} alt="" className="platform-avatar" />}
@@ -599,13 +602,15 @@ function GitHubSection({ data, canRefresh = false, onRangeChange }) {
         </div>
       </div>
 
-      {/* Overview Stats */}
       <div className="stats-row">
         <StatCard icon="📦" value={profile?.public_repos || 0} label="Repositories" />
         <StatCard icon="⭐" value={profile?.stars || 0} label="Total Stars" />
         <StatCard icon="🍴" value={profile?.forks || 0} label="Total Forks" />
         <StatCard icon="👥" value={profile?.followers || 0} label="Followers" />
       </div>
+
+      {/* Analytics panel now comes after profile */}
+      <GitHubAnalyticsPanel data={data} canRefresh={canRefresh} onRangeChange={onRangeChange} />
 
       {/* Contribution Heatmap */}
       <div className="card">
@@ -968,6 +973,40 @@ function KaggleSection({ data }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
+   FLOATING PLATFORM NAV (right-side buttons)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+const PLATFORM_NAV = [
+  { id: 'github', label: 'GitHub', icon: <GitHubIcon />, color: '#34d399' },
+  { id: 'leetcode', label: 'LeetCode', icon: <LeetCodeIcon />, color: '#fbbf24' },
+  { id: 'kaggle', label: 'Kaggle', icon: <KaggleIcon />, color: '#7dd3fc' },
+]
+
+function FloatingPlatformNav({ activePlatforms }) {
+  function scrollTo(id) {
+    const el = document.getElementById(`section-${id}`)
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  return (
+    <div className="floating-platform-nav">
+      {PLATFORM_NAV.filter(p => activePlatforms.includes(p.id)).map(p => (
+        <button
+          key={p.id}
+          className={`floating-nav-btn floating-nav-${p.id}`}
+          onClick={() => scrollTo(p.id)}
+          title={p.label}
+          style={{ '--nav-accent': p.color }}
+        >
+          <span className="floating-nav-icon">{p.icon}</span>
+          <span className="floating-nav-label">{p.label}</span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
    DASHBOARD PAGE
    ═══════════════════════════════════════════════════════════════════════ */
 
@@ -975,8 +1014,12 @@ function Dashboard({ data, form, onBack, canRefreshGithub, onRefreshGitHub }) {
   const dashRef = useRef(null)
   const [exporting, setExporting] = useState(false)
   const githubData = data?.github || (data?.profile ? data : null)
-  const overallScore = data?.overall_score ?? githubData?.profile?.score ?? 0
-  const summaryText = data?.summary || buildTeacherInsight(githubData)
+
+  const activePlatforms = [
+    githubData ? 'github' : null,
+    data?.leetcode ? 'leetcode' : null,
+    data?.kaggle ? 'kaggle' : null,
+  ].filter(Boolean)
 
   async function downloadPDF() {
     if (!dashRef.current || exporting) return
@@ -1009,7 +1052,6 @@ function Dashboard({ data, form, onBack, canRefreshGithub, onRefreshGitHub }) {
         const srcH = Math.min(((pageH - margin * 2) / imgH) * canvas.height, canvas.height - srcY)
         const drawH = (srcH / canvas.height) * imgH
 
-        // Create a cropped canvas for this page
         const pageCanvas = document.createElement('canvas')
         pageCanvas.width = canvas.width
         pageCanvas.height = srcH
@@ -1039,6 +1081,9 @@ function Dashboard({ data, form, onBack, canRefreshGithub, onRefreshGitHub }) {
         <div className="orb orb-2" />
       </div>
 
+      {/* Floating platform nav buttons on the right */}
+      <FloatingPlatformNav activePlatforms={activePlatforms} />
+
       {/* Top bar */}
       <nav className="dash-nav">
         <button className="back-btn" onClick={onBack}>← New Analysis</button>
@@ -1051,48 +1096,7 @@ function Dashboard({ data, form, onBack, canRefreshGithub, onRefreshGitHub }) {
       </nav>
 
       <div className="dash-content" ref={dashRef}>
-        {/* Overview Card */}
-        <div className="overview-card">
-          <div className="overview-top">
-            <div>
-              <p className="eyebrow">Overall performance</p>
-              <h2>Score: {overallScore}/100 — {scoreTone(overallScore)}</h2>
-              <p className="summary-text">{summaryText}</p>
-            </div>
-            <div className="overview-ring">
-              <DonutChart
-                size={120} thickness={14}
-                segments={[
-                  { value: overallScore, color: overallScore >= 80 ? 'var(--good)' : overallScore >= 50 ? 'var(--warn)' : 'var(--bad)' },
-                  { value: 100 - overallScore, color: 'rgba(148,163,184,0.08)' },
-                ]}
-                label={overallScore}
-                sublabel="/100"
-              />
-            </div>
-          </div>
-
-          {/* Platform score comparison */}
-          <div className="score-comparison">
-            {[
-              { name: 'GitHub', score: githubData?.profile?.score, color: '#34d399' },
-              { name: 'LeetCode', score: data.leetcode?.profile?.score, color: '#fbbf24' },
-              { name: 'Kaggle', score: data.kaggle?.profile?.score, color: '#7dd3fc' },
-            ].map(p => (
-              <div key={p.name} className="score-bar-item">
-                <div className="score-bar-header">
-                  <span>{p.name}</span>
-                  <strong>{p.score != null ? `${p.score}/100` : 'N/A'}</strong>
-                </div>
-                <div className="score-bar-track">
-                  <div className="score-bar-fill" style={{ width: `${p.score || 0}%`, background: p.color }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Platform Sections */}
+        {/* Platform Sections — no overview card */}
         <GitHubSection data={githubData} canRefresh={canRefreshGithub} onRangeChange={onRefreshGitHub} />
         <LeetCodeSection data={data.leetcode} />
         <KaggleSection data={data.kaggle} />

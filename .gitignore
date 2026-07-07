@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+venv/
+.venv/
+backend/venv/
+
+# Local environment files
+.env
+.env.*
+backend/.env
+
+# Node / frontend build output
+node_modules/
+dist/
+build/
+frontend/node_modules/
+frontend/dist/
+*.tsbuildinfo
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.vscode/

@@ -3,7 +3,7 @@ from flask import Blueprint, request, jsonify
 from services.github_serviecs import (
     get_github_dashboard,
 )
-from services.leetcode_services import get_leetcode_data, get_leetcode_calendar
+from services.leetcode_services import get_leetcode_data, get_leetcode_calendar, sync_leetcode_snapshots
 from services.kaggle_service import get_kaggle_data, get_kaggle_activity
 from services.scoring import overall_score
 from services.summary import generate_summary
@@ -67,10 +67,16 @@ def dashboard_full():
     if leetcode_username:
         lc_profile = get_leetcode_data(leetcode_username)
         lc_calendar = get_leetcode_calendar(leetcode_username)
+        
+        if lc_profile and not lc_profile.get("error"):
+            snapshots = sync_leetcode_snapshots(leetcode_username, lc_profile, lc_calendar)
+        else:
+            snapshots = []
 
         result["leetcode"] = {
             "profile": lc_profile,
             "calendar": lc_calendar,
+            "snapshots": snapshots
         }
     else:
         result["leetcode"] = None

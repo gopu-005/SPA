@@ -17,6 +17,7 @@ import {
   Cell,
   AreaChart,
   Area,
+  Sector,
 } from 'recharts'
 
 const API = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '')
@@ -814,7 +815,7 @@ function GitHubSection({ data, canRefresh = false, onRangeChange }) {
 
 function LeetCodeSection({ data }) {
   if (!data) return null
-  const { profile, calendar } = data
+  const { profile, calendar, snapshots } = data
   if (profile?.error) return <div className="section-err">LeetCode: {profile.error}</div>
 
   const easy = profile?.easy_solved || 0
@@ -822,19 +823,147 @@ function LeetCodeSection({ data }) {
   const hard = profile?.hard_solved || 0
   const total = easy + med + hard
 
-  // Build heatmap weeks from daily_submissions
+  // 1. Problem-Solving Growth Over Time
+  const [growthPeriod, setGrowthPeriod] = useState('12m')
+  const growthData = useMemo(() => {
+    const snaps = snapshots || []
+    if (snaps.length === 0) return []
+    
+    // Filter snapshots based on growthPeriod
+    const cutoff = new Date()
+    const monthsBack = growthPeriod === '6m' ? 6 : 12;
+    cutoff.setMonth(cutoff.getMonth() - monthsBack)
+    
+    return snaps.filter(s => new Date(s.date) >= cutoff)
+  }, [snapshots, growthPeriod])
+
+  // Detect periods of rapid improvement, stagnation, or inactivity
+  const growthInsight = useMemo(() => {
+    if (growthData.length < 2) return "Stagnant profile (requires more observations)."
+    
+    let maxFlatWeeks = 0
+    let currentFlatWeeks = 0
+    let flatStartMonth = ""
+    let maxFlatMonth = ""
+    
+    let lastVal = growthData[0].total
+    for (let i = 1; i < growthData.length; i++) {
+      const currVal = growthData[i].total
+      if (currVal === lastVal) {
+        currentFlatWeeks++
+        if (currentFlatWeeks > maxFlatWeeks) {
+          maxFlatWeeks = currentFlatWeeks
+          const dateObj = new Date(growthData[i].date)
+          maxFlatMonth = dateObj.toLocaleString('en-US', { month: 'long' })
+        }
+      } else {
+        currentFlatWeeks = 0
+        lastVal = currVal
+      }
+    }
+    
+    let maxGrowthWeekly = 0
+    let maxGrowthMonth = ""
+    for (let i = 1; i < growthData.length; i++) {
+      const delta = growthData[i].total - growthData[i - 1].total
+      if (delta > maxGrowthWeekly) {
+        maxGrowthWeekly = delta
+        const dateObj = new Date(growthData[i].date)
+        maxGrowthMonth = dateObj.toLocaleString('en-US', { month: 'long' })
+      }
+    }
+    
+    let msg = ""
+    if (maxGrowthWeekly > 3) {
+      msg += `Rapid improvement detected in ${maxGrowthMonth} (+${maxGrowthWeekly} solved in a week). `
+    }
+    if (maxFlatWeeks >= 4) {
+      msg += `Flat stretch of ${maxFlatWeeks} weeks recorded around ${maxFlatMonth}, indicating temporary stagnation/inactivity.`
+    } else {
+      msg += "Practiced relatively consistently with no major blocks of long stagnation."
+    }
+    return msg
+  }, [growthData])
+
+  // 2. Difficulty Distribution Donut Chart Hover State
+  const [activeLCIndex, setActiveLCIndex] = useState(-1)
+  const donutData = useMemo(() => [
+    { name: 'Easy', value: easy },
+    { name: 'Medium', value: med },
+    { name: 'Hard', value: hard }
+  ], [easy, med, hard])
+
+  const renderActiveLCShape = (props) => {
+    const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props;
+    return (
+      <g>
+        <Sector
+          cx={cx}
+          cy={cy}
+          innerRadius={innerRadius}
+          outerRadius={outerRadius + 8}
+          startAngle={startAngle}
+          endAngle={endAngle}
+          fill={fill}
+        />
+      </g>
+    );
+  };
+
+  // 3. Topic Strength Analysis
+  const topicData = useMemo(() => {
+    const raw = profile?.topic_distribution || []
+    
+    const targetTopics = {
+      "Arrays": ["Array", "Hash Table", "Matrix"],
+      "Strings": ["String", "String Matching"],
+      "Linked Lists": ["Linked List", "Doubly-Linked List"],
+      "Stacks and Queues": ["Stack", "Queue", "Monotonic Stack", "Monotonic Queue"],
+      "Trees": ["Tree", "Binary Tree", "Binary Search Tree", "Segment Tree"],
+      "Graphs": ["Graph", "Depth-First Search", "Breadth-First Search", "Union Find", "Shortest Path"],
+      "Greedy Algorithms": ["Greedy"],
+      "Backtracking": ["Backtracking"],
+      "Dynamic Programming": ["Dynamic Programming", "Memoization"]
+    }
+    
+    const counts = {}
+    Object.keys(targetTopics).forEach(topic => { counts[topic] = 0 })
+    counts["Other"] = 0
+    
+    raw.forEach(tag => {
+      const name = tag.tag_name
+      const score = tag.solved_count
+      
+      let matched = false
+      for (const [key, aliases] of Object.entries(targetTopics)) {
+        if (aliases.includes(name)) {
+          counts[key] += score
+          matched = true
+          break
+        }
+      }
+      if (!matched) {
+        if (name && !["Easy", "Medium", "Hard", "All"].includes(name)) {
+          counts["Other"] += score
+        }
+      }
+    })
+    
+    return Object.entries(counts)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+  }, [profile])
+
+  // 4. Practice Consistency Heatmap
   const heatmapWeeks = useMemo(() => {
     const subs = calendar?.daily_submissions || []
     if (subs.length === 0) return []
 
-    // Build a map of date → count
     const dateMap = {}
     subs.forEach(s => { dateMap[s.date] = s.count })
 
-    // Generate 52 weeks up to today
     const today = new Date()
     const weeks = []
-    // Go back ~364 days to start of that week
     const start = new Date(today)
     start.setDate(start.getDate() - 363 - start.getDay())
 
@@ -852,6 +981,63 @@ function LeetCodeSection({ data }) {
     return weeks
   }, [calendar])
 
+  const consistencyLevel = useMemo(() => {
+    const active = calendar?.total_active_days || 0
+    if (active >= 120) return "Excellent Consistency"
+    if (active >= 40) return "Moderate Consistency"
+    return "Needs Active Routine"
+  }, [calendar])
+
+  // 5. Contest Performance
+  const contestTrend = profile?.contest_trend || []
+  const maxContestRating = useMemo(() => {
+    if (contestTrend.length === 0) return 0
+    return Math.round(Math.max(...contestTrend.map(c => c.rating || 0)))
+  }, [contestTrend])
+  const currentContestRating = Math.round(profile?.contest_rating || 0)
+
+  // 6. Dynamic Teacher Insights Summary
+  const teacherInsight = useMemo(() => {
+    let summaryText = ""
+    
+    const solvedVal = profile?.total_solved || 0
+    let level = "Beginner"
+    if (solvedVal >= 500) level = "Advanced Problem Solver"
+    else if (solvedVal >= 150) level = "Intermediate Problem Solver"
+    
+    summaryText += `The student functions at an ${level} level, with a cumulative total of ${total} problems solved. `
+    
+    const hardPct = total > 0 ? Math.round((hard / total) * 100) : 0
+    const medPct = total > 0 ? Math.round((med / total) * 100) : 0
+    if (hardPct > 10) {
+      summaryText += `Excellent progression towards advanced algorithmic questions, solving a notable fraction of hard challenges (${hardPct}%). `
+    } else if (medPct > 35) {
+      summaryText += `Good progression, showing solid comfort with Medium-level problem distributions (${medPct}%). `
+    } else {
+      summaryText += `Focus remains primarily concentrated on basic Easy-level challenges. Encouragement is needed to transition towards Intermediate (Medium) level tasks. `
+    }
+    
+    const strongestList = topicData.filter(t => t.name !== "Other" && t.value > 0)
+    if (strongestList.length > 0) {
+      summaryText += `Strongest data structure concepts reside in ${strongestList.slice(0, 2).map(t => t.name).join(' and ')}. `
+    }
+    
+    const gapTopics = topicData.filter(t => t.name !== "Other" && t.value === 0).map(t => t.name)
+    if (gapTopics.length > 0) {
+      summaryText += `Immediate curriculum support or practice should target learning gaps in ${gapTopics.slice(0, 3).join(', ')}. `
+    }
+    
+    summaryText += `Practice profile indicates: ${consistencyLevel} with ${calendar?.total_active_days || 0} active days in the past year. `
+    
+    if (contestTrend.length > 0) {
+      summaryText += `Participated in ${contestTrend.length} contests, reaching a peak competitive ranking rating of ${maxContestRating} (Currently ${currentContestRating}).`
+    } else {
+      summaryText += `No competitive rating activity detected yet.`
+    }
+    
+    return summaryText
+  }, [profile, total, hard, med, topicData, consistencyLevel, calendar, contestTrend, maxContestRating, currentContestRating])
+
   return (
     <section className="platform-section" id="section-leetcode">
       <div className="platform-header">
@@ -860,7 +1046,7 @@ function LeetCodeSection({ data }) {
           <div>
             <h2>{profile?.name || profile?.username || 'LeetCode'}</h2>
             <p className="muted">
-              {profile?.profile_url && <a href={profile.profile_url} target="_blank" rel="noreferrer" className="link">View profile ↗</a>}
+              {profile?.profile_url && <a href={profile.profile_url} target="_blank" rel="noreferrer" className="link">View LeetCode Profile ↗</a>}
             </p>
           </div>
         </div>
@@ -870,81 +1056,180 @@ function LeetCodeSection({ data }) {
         </div>
       </div>
 
-      {/* Problem Stats */}
-      <div className="stats-row">
-        <StatCard icon="✅" value={total} label="Total Solved" />
-        <StatCard icon="🟢" value={easy} label="Easy" />
-        <StatCard icon="🟡" value={med} label="Medium" />
-        <StatCard icon="🔴" value={hard} label="Hard" />
-      </div>
-
-      {/* Difficulty Donut */}
-      <div className="card">
-        <p className="eyebrow">Problem difficulty</p>
-        <h3>Difficulty distribution</h3>
-        <div className="donut-row">
-          <DonutChart
-            segments={[
-              { value: easy, color: '#34d399', label: 'Easy' },
-              { value: med, color: '#fbbf24', label: 'Medium' },
-              { value: hard, color: '#fb7185', label: 'Hard' },
-            ]}
-            label={total}
-            sublabel="Solved"
-          />
-          <div className="difficulty-legend">
-            <div className="diff-item"><span className="diff-dot" style={{ background: '#34d399' }} /> Easy <strong>{easy}</strong></div>
-            <div className="diff-item"><span className="diff-dot" style={{ background: '#fbbf24' }} /> Medium <strong>{med}</strong></div>
-            <div className="diff-item"><span className="diff-dot" style={{ background: '#fb7185' }} /> Hard <strong>{hard}</strong></div>
+      {/* Metric 1: Problem-Solving Growth Over Time */}
+      <div className="card" style={{ gridColumn: 'span 2' }}>
+        <div className="weekly-activity-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem' }}>
+          <div>
+            <p className="eyebrow" style={{ margin: 0 }}>Progress timeline</p>
+            <h3 style={{ margin: '0.2rem 0 0 0' }}>Problem-Solving Growth Over Time</h3>
+          </div>
+          <div className="range-selector">
+            {[
+              { id: '6m', label: '6 Months' },
+              { id: '12m', label: '12 Months' }
+            ].map(p => (
+              <button
+                key={p.id}
+                className={`range-pill ${growthPeriod === p.id ? 'is-active' : ''}`}
+                onClick={() => setGrowthPeriod(p.id)}
+              >
+                {p.label}
+              </button>
+            ))}
           </div>
         </div>
+        {growthData.length > 0 ? (
+          <div>
+            <ResponsiveContainer width="100%" height={260}>
+              <RechartsLineChart data={growthData} margin={{ top: 12, right: 12, left: 0, bottom: 8 }}>
+                <CartesianGrid stroke="rgba(148,163,184,0.12)" strokeDasharray="3 3" />
+                <XAxis dataKey="date" tick={{ fill: '#7e93af', fontSize: 11 }} tickLine={false} />
+                <YAxis tick={{ fill: '#7e93af', fontSize: 11 }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ background: '#09111d', border: '1px solid rgba(148,163,184,0.16)', borderRadius: 12, color: '#e5eefc' }} />
+                <Legend verticalAlign="top" height={36} iconType="circle" />
+                <Line type="monotone" name="Total Solved" dataKey="total" stroke="var(--accent)" strokeWidth={3} dot={false} activeDot={{ r: 6 }} />
+                <Line type="monotone" name="Easy" dataKey="easy" stroke="#34d399" strokeWidth={2} dot={false} />
+                <Line type="monotone" name="Medium" dataKey="medium" stroke="#fbbf24" strokeWidth={2} dot={false} />
+                <Line type="monotone" name="Hard" dataKey="hard" stroke="#fb7185" strokeWidth={2} dot={false} />
+              </RechartsLineChart>
+            </ResponsiveContainer>
+            <div style={{ marginTop: '0.85rem', padding: '0.75rem 1rem', background: 'rgba(56,189,248,0.04)', border: '1px solid rgba(56,189,248,0.1)', borderRadius: 12, fontSize: '0.82rem', color: '#cbd5e1' }}>
+              <strong>Timeline Diagnostics:</strong> {growthInsight}
+            </div>
+          </div>
+        ) : (
+          <ChartEmpty title="Problem-Solving Growth" message="Snapshot timeline history is compiling. Fresh snapshots will register on daily updates." />
+        )}
       </div>
 
-      {/* Submission Heatmap */}
-      {heatmapWeeks.length > 0 && (
-        <div className="card">
-          <p className="eyebrow">Submission timeline</p>
-          <h3>{calendar?.total_submissions || 0} submissions • {calendar?.total_active_days || 0} active days</h3>
-          <Heatmap weeks={heatmapWeeks} colorScheme="amber" title="" />
-        </div>
-      )}
-
-      {/* Streak & Consistency */}
-      <div className="card">
-        <p className="eyebrow">Streak &amp; consistency</p>
-        <h3>How consistent is this student on LeetCode?</h3>
-        <div className="stats-row inner">
-          <StatCard icon="🔥" value={`${calendar?.streak || 0}d`} label="Current Streak" />
-          <StatCard icon="📅" value={calendar?.total_active_days || 0} label="Active Days" />
-          <StatCard icon="📊" value={calendar?.total_submissions || 0} label="Total Submissions" />
-        </div>
-      </div>
-
-      {/* Weekly Bar Chart */}
-      {calendar?.weekly_data && calendar.weekly_data.length > 0 && (
-        <div className="card">
-          <p className="eyebrow">Weekly submissions</p>
-          <h3>Problems solved per week</h3>
-          <BarChart
-            data={calendar.weekly_data}
-            labelKey="week" valueKey="submissions"
-            color="#fbbf24" height={120}
-          />
-        </div>
-      )}
-
-      {/* Contest Info */}
-      {(profile?.contests_attended > 0 || profile?.contest_rating > 0) && (
-        <div className="card">
-          <p className="eyebrow">Contest performance</p>
-          <h3>Competitive programming</h3>
-          <div className="stats-row inner">
-            <StatCard icon="🏅" value={profile.contests_attended} label="Contests" />
-            <StatCard icon="📈" value={Math.round(profile.contest_rating || 0)} label="Rating" />
-            <StatCard icon="🎯" value={`${Math.round(profile.top_percentage || 0)}%`} label="Top %" />
+      {/* Responsive Two-Column Layout */}
+      <div className="insight-below-row" style={{ marginTop: '0.5rem', width: '100%' }}>
+        {/* Metric 2: Difficulty Distribution */}
+        <div className="card chart-card">
+          <p className="eyebrow">Progression analysis</p>
+          <h3>Difficulty Distribution</h3>
+          <div className="donut-row github-donut-row" style={{ minHeight: 240 }}>
+            <div className="github-pie-wrap">
+              <div className="donut-wrap" style={{ width: '100%', height: 210, position: 'relative' }}>
+                <ResponsiveContainer width="100%" height={210}>
+                  <PieChart>
+                    <Pie
+                      data={donutData}
+                      dataKey="value"
+                      nameKey="name"
+                      innerRadius={58}
+                      outerRadius={84}
+                      paddingAngle={4}
+                      activeIndex={activeLCIndex}
+                      activeShape={renderActiveLCShape}
+                      onMouseEnter={(_, index) => setActiveLCIndex(index)}
+                      onMouseLeave={() => setActiveLCIndex(-1)}
+                    >
+                      <Cell fill="#34d399" />
+                      <Cell fill="#fbbf24" />
+                      <Cell fill="#fb7185" />
+                    </Pie>
+                    <Tooltip contentStyle={{ background: '#09111d', border: '1px solid rgba(148,163,184,0.16)', borderRadius: 12, color: '#e5eefc' }} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="donut-center" style={{ pointerEvents: 'none' }}>
+                  <strong>
+                    {activeLCIndex !== -1 ? donutData[activeLCIndex]?.name : total}
+                  </strong>
+                  <span>
+                    {activeLCIndex !== -1 ? `${donutData[activeLCIndex]?.value} solved` : 'Solved'}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="difficulty-legend" style={{ minWidth: 100 }}>
+              <div className="diff-item"><span className="diff-dot" style={{ background: '#34d399' }} /> Easy <strong>{easy}</strong></div>
+              <div className="diff-item"><span className="diff-dot" style={{ background: '#fbbf24' }} /> Med <strong>{med}</strong></div>
+              <div className="diff-item"><span className="diff-dot" style={{ background: '#fb7185' }} /> Hard <strong>{hard}</strong></div>
+            </div>
           </div>
         </div>
-      )}
+
+        {/* Metric 3: Topic Strength Analysis */}
+        <div className="card chart-card">
+          <p className="eyebrow">Syllabus gaps</p>
+          <h3>DSA Topic Strength Analysis</h3>
+          {topicData.some(t => t.value > 0) ? (
+            <ResponsiveContainer width="100%" height={240}>
+              <RechartsBarChart data={topicData} layout="vertical" margin={{ top: 8, right: 12, left: 16, bottom: 8 }}>
+                <CartesianGrid stroke="rgba(148,163,184,0.12)" strokeDasharray="3 3" horizontal={false} />
+                <XAxis type="number" tick={{ fill: '#7e93af', fontSize: 11 }} axisLine={{ stroke: 'rgba(148,163,184,0.18)' }} tickLine={false} />
+                <YAxis type="category" dataKey="name" width={110} tick={{ fill: '#e5eefc', fontSize: 11 }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ background: '#09111d', border: '1px solid rgba(148,163,184,0.16)', borderRadius: 12, color: '#e5eefc' }} />
+                <Bar dataKey="value" fill="#fbbf24" radius={[0, 4, 4, 0]}>
+                  {topicData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={index === 0 ? 'var(--accent)' : 'rgba(251,191,36,0.7)'} />
+                  ))}
+                </Bar>
+              </RechartsBarChart>
+            </ResponsiveContainer>
+          ) : (
+            <ChartEmpty title="Topic Strength" message="Topic tags data is empty or public view is restricted." />
+          )}
+        </div>
+      </div>
+
+      <div className="insight-below-row" style={{ marginTop: '1rem', width: '100%' }}>
+        {/* Metric 4: Practice Consistency */}
+        <div className="card chart-card">
+          <p className="eyebrow">Activity habits</p>
+          <h3>Practice Consistency</h3>
+          {heatmapWeeks.length > 0 ? (
+            <div>
+              <div style={{ marginBottom: '1rem' }}>
+                <Heatmap weeks={heatmapWeeks} colorScheme="amber" title="" />
+              </div>
+              <div className="stats-row inner" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
+                <StatCard icon="🔥" value={`${calendar?.streak || 0}d`} label="Streak" />
+                <StatCard icon="📅" value={calendar?.total_active_days || 0} label="Active Days" />
+                <StatCard icon="💡" value={consistencyLevel.replace(" Consistency", "")} label="Consistency" />
+              </div>
+            </div>
+          ) : (
+            <ChartEmpty title="Submission heat map" message="No submission calendar is available." />
+          )}
+        </div>
+
+        {/* Metric 5: Contest Performance */}
+        <div className="card chart-card">
+          <p className="eyebrow">Competitive progress</p>
+          <h3>Contest Performance</h3>
+          {contestTrend.length > 0 ? (
+            <div>
+              <ResponsiveContainer width="100%" height={150}>
+                <RechartsLineChart data={contestTrend} margin={{ top: 8, right: 12, left: -20, bottom: 4 }}>
+                  <CartesianGrid stroke="rgba(148,163,184,0.12)" strokeDasharray="3 3" />
+                  <XAxis dataKey="date" tick={{ fill: '#7e93af', fontSize: 10 }} tickLine={false} />
+                  <YAxis domain={['auto', 'auto']} tick={{ fill: '#7e93af', fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{ background: '#09111d', border: '1px solid rgba(148,163,184,0.16)', borderRadius: 12, color: '#e5eefc' }} />
+                  <Line type="monotone" name="Rating" dataKey="rating" stroke="#f59e0b" strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                </RechartsLineChart>
+              </ResponsiveContainer>
+              <div className="stats-row inner" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', marginTop: '0.65rem' }}>
+                <StatCard icon="🏆" value={currentContestRating} label="Rating" />
+                <StatCard icon="🌟" value={maxContestRating} label="Peak Rating" />
+                <StatCard icon="🏅" value={contestTrend.length} label="Contests" />
+              </div>
+            </div>
+          ) : (
+            <ChartEmpty title="Contest Performance" message="This student has not participated in any competitive programming contests yet." />
+          )}
+        </div>
+      </div>
+
+      {/* Teacher Diagnostics */}
+      <div className="card github-insight-card" style={{ gridColumn: 'span 2', marginTop: '1rem' }}>
+        <p className="eyebrow">Academic context &amp; advice</p>
+        <h3>Teacher Problem-Solving Diagnostics</h3>
+        <p className="teacher-insight" style={{ lineHeight: '1.6', fontSize: '0.92rem' }}>
+          {teacherInsight}
+        </p>
+      </div>
     </section>
   )
 }

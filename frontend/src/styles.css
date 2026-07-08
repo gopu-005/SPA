@@ -333,12 +333,14 @@ a { color: inherit; text-decoration: none; }
 
 /* ── Nav ───────────────────────────────────────────────────────────── */
 .dash-nav {
-  position: sticky; top: 0; z-index: 10;
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
   display: flex; align-items: center; justify-content: space-between;
   padding: 0.75rem 1.5rem;
-  background: rgba(6, 9, 15, 0.85);
-  backdrop-filter: blur(16px);
-  border-bottom: 1px solid var(--border);
+  background: rgba(6, 9, 15, 0.65);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
 }
 
 .dash-nav h1 { margin: 0; font-size: 1.1rem; font-weight: 700; }
@@ -362,7 +364,7 @@ a { color: inherit; text-decoration: none; }
   position: relative; z-index: 1;
   max-width: 1100px;
   margin: 0 auto;
-  padding: 1.5rem 1rem 4rem;
+  padding: 5.5rem 1rem 4rem;
   display: grid; gap: 1.5rem;
 }
 
@@ -554,8 +556,12 @@ a { color: inherit; text-decoration: none; }
 }
 
 .github-pie-wrap {
+  position: relative;
   min-width: 260px;
   width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .github-pie-wrap.compact {
@@ -568,6 +574,7 @@ a { color: inherit; text-decoration: none; }
 
 .github-donut-row {
   align-items: center;
+  justify-content: center;
 }
 
 @media (max-width: 960px) {
@@ -591,6 +598,7 @@ a { color: inherit; text-decoration: none; }
   z-index: 50;
   display: flex;
   flex-direction: column;
+  align-items: flex-end;   /* keep non-hovered buttons flush right */
   gap: 0.65rem;
 }
 
@@ -609,6 +617,7 @@ a { color: inherit; text-decoration: none; }
   width: 52px;
   overflow: hidden;
   transition: width 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+              padding 0.3s ease,
               background 0.25s ease,
               border-color 0.25s ease,
               box-shadow 0.25s ease;
@@ -616,10 +625,22 @@ a { color: inherit; text-decoration: none; }
 }
 
 .floating-nav-btn:hover {
-  width: 148px;
+  width: 164px;
+  padding: 0.85rem 1rem;
   background: rgba(14, 20, 36, 0.98);
   border-color: var(--nav-accent, var(--accent));
   box-shadow: 0 4px 28px rgba(0, 0, 0, 0.45), 0 0 12px color-mix(in srgb, var(--nav-accent, var(--accent)) 25%, transparent);
+}
+
+/* Active platform button */
+.floating-nav-btn.is-active {
+  border-color: var(--nav-accent, var(--accent));
+  background: rgba(14, 20, 36, 0.98);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--nav-accent, var(--accent)) 20%, transparent);
+}
+
+.floating-nav-btn.is-active .floating-nav-icon {
+  filter: drop-shadow(0 0 4px var(--nav-accent, var(--accent)));
 }
 
 .floating-nav-icon {
@@ -630,11 +651,23 @@ a { color: inherit; text-decoration: none; }
   align-items: center;
   justify-content: center;
   color: var(--nav-accent, var(--accent));
+  transition: width 0.3s ease, height 0.3s ease;
 }
 
 .floating-nav-icon svg {
   width: 22px;
   height: 22px;
+  transition: width 0.3s ease, height 0.3s ease;
+}
+
+.floating-nav-btn:hover .floating-nav-icon {
+  width: 30px;
+  height: 30px;
+}
+
+.floating-nav-btn:hover .floating-nav-icon svg {
+  width: 26px;
+  height: 26px;
 }
 
 .floating-nav-label {
@@ -643,13 +676,15 @@ a { color: inherit; text-decoration: none; }
   white-space: nowrap;
   opacity: 0;
   margin-left: 0;
-  transition: opacity 0.25s ease 0.08s, margin-left 0.3s ease;
+  transition: opacity 0.25s ease 0.08s, margin-left 0.3s ease, font-size 0.3s ease;
   color: var(--nav-accent, var(--accent));
 }
 
 .floating-nav-btn:hover .floating-nav-label {
   opacity: 1;
-  margin-left: 0.55rem;
+  margin-left: 0.6rem;
+  font-size: 0.92rem;
+  font-weight: 800;
 }
 
 /* Specific platform icon colors on the nav */
@@ -664,6 +699,7 @@ a { color: inherit; text-decoration: none; }
     right: 1rem;
     transform: none;
     flex-direction: row;
+    align-items: center;
   }
 
   .floating-nav-btn {
@@ -674,6 +710,7 @@ a { color: inherit; text-decoration: none; }
 
   .floating-nav-btn:hover {
     width: 44px;
+    padding: 0.6rem;
   }
 
   .floating-nav-label {

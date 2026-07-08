@@ -17,7 +17,6 @@ import {
   Cell,
   AreaChart,
   Area,
-  Sector,
 } from 'recharts'
 
 const API = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '')
@@ -36,10 +35,10 @@ function scoreTone(s) { return s >= 80 ? 'Excellent' : s >= 50 ? 'Steady' : 'Nee
 function scoreClass(s) { return s >= 80 ? 'is-excellent' : s >= 50 ? 'is-steady' : 'is-needs-attention' }
 
 const LANG_COLORS = {
-  JavaScript:'#f7df1e',TypeScript:'#3178c6',Python:'#3572A5',Java:'#b07219',
-  'C++':'#f34b7d',C:'#555',Go:'#00ADD8',Rust:'#dea584',Ruby:'#701516',
-  PHP:'#4F5D95',Swift:'#F05138',Kotlin:'#A97BFF',HTML:'#e34c26',CSS:'#563d7c',
-  Dart:'#00B4AB',Shell:'#89e051','Jupyter Notebook':'#F37626',Vue:'#41b883',
+  JavaScript: '#f7df1e', TypeScript: '#3178c6', Python: '#3572A5', Java: '#b07219',
+  'C++': '#f34b7d', C: '#555', Go: '#00ADD8', Rust: '#dea584', Ruby: '#701516',
+  PHP: '#4F5D95', Swift: '#F05138', Kotlin: '#A97BFF', HTML: '#e34c26', CSS: '#563d7c',
+  Dart: '#00B4AB', Shell: '#89e051', 'Jupyter Notebook': '#F37626', Vue: '#41b883',
 }
 
 function GitHubIcon() {
@@ -294,10 +293,10 @@ function DonutChart({ segments, size = 160, thickness = 20, label, sublabel }) {
   return (
     <div className="donut-wrap">
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(148,163,184,0.08)" strokeWidth={thickness} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(148,163,184,0.08)" strokeWidth={thickness} />
         {arcs.map((a, i) => (
           <circle
-            key={i} cx={size/2} cy={size/2} r={r} fill="none"
+            key={i} cx={size / 2} cy={size / 2} r={r} fill="none"
             stroke={a.color} strokeWidth={thickness}
             strokeDasharray={`${a.dash} ${a.gap}`}
             strokeDashoffset={-a.offset}
@@ -318,7 +317,7 @@ function DonutChart({ segments, size = 160, thickness = 20, label, sublabel }) {
    HEATMAP (GitHub / LeetCode)
    ═══════════════════════════════════════════════════════════════════════ */
 
-const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 function Heatmap({ weeks, colorScheme = 'green', title }) {
   const [tip, setTip] = useState(null)
@@ -355,9 +354,9 @@ function Heatmap({ weeks, colorScheme = 'green', title }) {
           {weeks.map((_, i) => { const m = monthPos.find(p => p.i === i); return <span key={i} className="hm-mlabel">{m ? MONTHS[m.m] : ''}</span> })}
         </div>
         <div className="hm-grid" style={{ gridTemplateColumns: `24px repeat(${weeks.length}, 1fr)` }}>
-          {[0,1,2,3,4,5,6].map(day => (
+          {[0, 1, 2, 3, 4, 5, 6].map(day => (
             <>
-              <span key={`l${day}`} className="hm-dlabel">{['','M','','W','','F',''][day]}</span>
+              <span key={`l${day}`} className="hm-dlabel">{['', 'M', '', 'W', '', 'F', ''][day]}</span>
               {weeks.map((w, wi) => {
                 const d = (w.contributionDays || w.days || [])[day]
                 if (!d) return <span key={`${wi}-${day}`} className="hm-cell" />
@@ -370,7 +369,7 @@ function Heatmap({ weeks, colorScheme = 'green', title }) {
                     style={{ background: colors[lv] }}
                     onMouseEnter={e => {
                       const r = e.target.getBoundingClientRect()
-                      setTip({ text: `${cnt} on ${fmtDate(d.date)}`, x: r.left + r.width/2, y: r.top - 6 })
+                      setTip({ text: `${cnt} on ${fmtDate(d.date)}`, x: r.left + r.width / 2, y: r.top - 6 })
                     }}
                     onMouseLeave={() => setTip(null)}
                   />
@@ -704,7 +703,7 @@ function GitHubSection({ data, canRefresh = false, onRangeChange }) {
           <div className="weekly-activity-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem' }}>
             <div>
               <p className="eyebrow" style={{ margin: 0 }}>Weekly activity</p>
-              <h3 style={{ margin: '0.2rem 0 0 0' }}>Contributions per week</h3>
+              <h3 style={{ margin: '0.2rem 0 0 0' }}>Contributions to Repositories</h3>
             </div>
             <div className="range-selector">
               {periods.map(p => (
@@ -1256,12 +1255,12 @@ export default function App() {
       const responsePayload = await resp.json()
       const normalizedPayload = githubOnly
         ? {
-            github: responsePayload,
-            leetcode: null,
-            kaggle: null,
-            overall_score: responsePayload?.profile?.score || 0,
-            summary: buildTeacherInsight(responsePayload),
-          }
+          github: responsePayload,
+          leetcode: null,
+          kaggle: null,
+          overall_score: responsePayload?.profile?.score || 0,
+          summary: buildTeacherInsight(responsePayload),
+        }
         : responsePayload
 
       setAnalysisMode(githubOnly ? 'github' : 'multi')

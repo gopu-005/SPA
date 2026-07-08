@@ -829,15 +829,15 @@ function LeetCodeSection({ data }) {
   const growthData = useMemo(() => {
     const snaps = snapshots || []
     if (snaps.length === 0) return []
-    
+
     // Filter snapshots based on growthPeriod
     const cutoff = new Date()
     const monthsBack = growthPeriod === '6m' ? 6 : 12;
     cutoff.setMonth(cutoff.getMonth() - monthsBack)
-    
+
     const filtered = snaps.filter(s => new Date(s.date) >= cutoff)
     const sortedFiltered = [...filtered].sort((a, b) => new Date(a.date) - new Date(b.date))
-    
+
     if (resolution === 'weekly') {
       return sortedFiltered.map(s => ({
         ...s,
@@ -845,12 +845,12 @@ function LeetCodeSection({ data }) {
         date: s.date
       }))
     }
-    
+
     const groups = {}
     sortedFiltered.forEach(s => {
       const date = new Date(s.date)
       if (Number.isNaN(date.getTime())) return
-      
+
       let key = ''
       if (resolution === 'monthly') {
         key = date.toLocaleString('en', { month: 'short', year: '2-digit' })
@@ -860,7 +860,7 @@ function LeetCodeSection({ data }) {
       } else if (resolution === 'yearly') {
         key = date.getFullYear().toString()
       }
-      
+
       groups[key] = {
         ...s,
         originalDate: s.date,
@@ -868,19 +868,19 @@ function LeetCodeSection({ data }) {
         rawDate: date
       }
     })
-    
+
     return Object.values(groups).sort((a, b) => a.rawDate - b.rawDate)
   }, [snapshots, growthPeriod, resolution])
 
   // Detect periods of rapid improvement, stagnation, or inactivity
   const growthInsight = useMemo(() => {
     if (growthData.length < 2) return "Stagnant profile (requires more observations)."
-    
+
     let maxFlatWeeks = 0
     let currentFlatWeeks = 0
     let flatStartMonth = ""
     let maxFlatMonth = ""
-    
+
     let lastVal = growthData[0].total
     for (let i = 1; i < growthData.length; i++) {
       const currVal = growthData[i].total
@@ -896,7 +896,7 @@ function LeetCodeSection({ data }) {
         lastVal = currVal
       }
     }
-    
+
     let maxGrowthWeekly = 0
     let maxGrowthMonth = ""
     for (let i = 1; i < growthData.length; i++) {
@@ -907,7 +907,7 @@ function LeetCodeSection({ data }) {
         maxGrowthMonth = dateObj.toLocaleString('en-US', { month: 'long' })
       }
     }
-    
+
     let msg = ""
     if (maxGrowthWeekly > 3) {
       msg += `Rapid improvement detected in ${maxGrowthMonth} (+${maxGrowthWeekly} solved in a week). `
@@ -948,7 +948,7 @@ function LeetCodeSection({ data }) {
   // 3. Topic Strength Analysis
   const topicData = useMemo(() => {
     const raw = profile?.topic_distribution || []
-    
+
     const targetTopics = {
       "Arrays": ["Array", "Hash Table", "Matrix"],
       "Strings": ["String", "String Matching"],
@@ -960,15 +960,15 @@ function LeetCodeSection({ data }) {
       "Backtracking": ["Backtracking"],
       "Dynamic Programming": ["Dynamic Programming", "Memoization"]
     }
-    
+
     const counts = {}
     Object.keys(targetTopics).forEach(topic => { counts[topic] = 0 })
     counts["Other"] = 0
-    
+
     raw.forEach(tag => {
       const name = tag.tag_name
       const score = tag.solved_count
-      
+
       let matched = false
       for (const [key, aliases] of Object.entries(targetTopics)) {
         if (aliases.includes(name)) {
@@ -983,7 +983,7 @@ function LeetCodeSection({ data }) {
         }
       }
     })
-    
+
     return Object.entries(counts)
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value)
@@ -1034,14 +1034,14 @@ function LeetCodeSection({ data }) {
   // 6. Dynamic Teacher Insights Summary
   const teacherInsight = useMemo(() => {
     let summaryText = ""
-    
+
     const solvedVal = profile?.total_solved || 0
     let level = "Beginner"
     if (solvedVal >= 500) level = "Advanced Problem Solver"
     else if (solvedVal >= 150) level = "Intermediate Problem Solver"
-    
+
     summaryText += `The student functions at an ${level} level, with a cumulative total of ${total} problems solved. `
-    
+
     const hardPct = total > 0 ? Math.round((hard / total) * 100) : 0
     const medPct = total > 0 ? Math.round((med / total) * 100) : 0
     if (hardPct > 10) {
@@ -1051,25 +1051,25 @@ function LeetCodeSection({ data }) {
     } else {
       summaryText += `Focus remains primarily concentrated on basic Easy-level challenges. Encouragement is needed to transition towards Intermediate (Medium) level tasks. `
     }
-    
+
     const strongestList = topicData.filter(t => t.name !== "Other" && t.value > 0)
     if (strongestList.length > 0) {
       summaryText += `Strongest data structure concepts reside in ${strongestList.slice(0, 2).map(t => t.name).join(' and ')}. `
     }
-    
+
     const gapTopics = topicData.filter(t => t.name !== "Other" && t.value === 0).map(t => t.name)
     if (gapTopics.length > 0) {
       summaryText += `Immediate curriculum support or practice should target learning gaps in ${gapTopics.slice(0, 3).join(', ')}. `
     }
-    
+
     summaryText += `Practice profile indicates: ${consistencyLevel} with ${calendar?.total_active_days || 0} active days in the past year. `
-    
+
     if (contestTrend.length > 0) {
       summaryText += `Participated in ${contestTrend.length} contests, reaching a peak competitive ranking rating of ${maxContestRating} (Currently ${currentContestRating}).`
     } else {
       summaryText += `No competitive rating activity detected yet.`
     }
-    
+
     return summaryText
   }, [profile, total, hard, med, topicData, consistencyLevel, calendar, contestTrend, maxContestRating, currentContestRating])
 
@@ -1089,14 +1089,6 @@ function LeetCodeSection({ data }) {
           <span>{profile?.score || 0}</span>
           <small>/100</small>
         </div>
-      </div>
-
-      {/* Problem Stats */}
-      <div className="stats-row" style={{ marginBottom: '1.25rem' }}>
-        <StatCard icon="✅" value={total} label="Total Solved" />
-        <StatCard icon="🟢" value={easy} label="Easy" />
-        <StatCard icon="🟡" value={med} label="Medium" />
-        <StatCard icon="🔴" value={hard} label="Hard" />
       </div>
 
       {/* Metric 1: Problem-Solving Growth Over Time */}
@@ -1211,27 +1203,7 @@ function LeetCodeSection({ data }) {
           </div>
         </div>
 
-        {/* Metric 4: Practice Consistency (Activity habits - moved to fill gap) */}
-        <div className="card chart-card">
-          <p className="eyebrow">Activity habits</p>
-          <h3>Practice Consistency</h3>
-          {heatmapWeeks.length > 0 ? (
-            <div>
-              <div style={{ marginBottom: '1rem' }}>
-                <Heatmap weeks={heatmapWeeks} colorScheme="amber" title="" />
-              </div>
-              <div className="stats-row inner" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
-                <StatCard icon="🔥" value={`${calendar?.streak || 0}d`} label="Streak" />
-                <StatCard icon="📅" value={calendar?.total_active_days || 0} label="Active Days" />
-                <StatCard icon="💡" value={consistencyLevel.replace(" Consistency", "")} label="Consistency" />
-              </div>
-            </div>
-          ) : (
-            <ChartEmpty title="Submission heat map" message="No submission calendar is available." />
-          )}
-        </div>
-
-        {/* Metric 3: Topic Strength (Syllabus gaps - moved below Difficulty) */}
+        {/* Metric 3: Topic Strength (Syllabus gaps) */}
         <div className="card chart-card">
           <p className="eyebrow">Syllabus gaps</p>
           <h3>DSA Topic Strength Analysis</h3>
@@ -1254,8 +1226,28 @@ function LeetCodeSection({ data }) {
           )}
         </div>
 
-        {/* Teacher Diagnostics (moved to fill gap of Competitive progress) */}
-        <div className="card chart-card github-insight-card">
+        {/* Metric 4: Practice Consistency (Activity habits - extended to full width) */}
+        <div className="card chart-card chart-card-wide">
+          <p className="eyebrow">Activity habits</p>
+          <h3>Practice Consistency</h3>
+          {heatmapWeeks.length > 0 ? (
+            <div>
+              <div style={{ marginBottom: '1rem' }}>
+                <Heatmap weeks={heatmapWeeks} colorScheme="amber" title="" />
+              </div>
+              <div className="stats-row inner" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
+                <StatCard icon="🔥" value={`${calendar?.streak || 0}d`} label="Streak" />
+                <StatCard icon="📅" value={calendar?.total_active_days || 0} label="Active Days" />
+                <StatCard icon="💡" value={consistencyLevel.replace(" Consistency", "")} label="Consistency" />
+              </div>
+            </div>
+          ) : (
+            <ChartEmpty title="Submission heat map" message="No submission calendar is available." />
+          )}
+        </div>
+
+        {/* Teacher Diagnostics (Academic context & advice - extended to full width) */}
+        <div className="card chart-card github-insight-card chart-card-wide">
           <p className="eyebrow">Academic context &amp; advice</p>
           <h3>Teacher Problem-Solving Diagnostics</h3>
           <p className="teacher-insight" style={{ lineHeight: '1.6', fontSize: '0.92rem' }}>

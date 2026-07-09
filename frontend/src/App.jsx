@@ -448,7 +448,44 @@ function ChartEmpty({ title, message }) {
 
 function GitHubAnalyticsPanel({ data, canRefresh, onRangeChange }) {
   const range = data?.range || '12m'
-  const timeline = useMemo(() => buildGitHubTimeline(data), [data])
+  const [timelinePeriod, setTimelinePeriod] = useState('monthly')
+
+  const timeline = useMemo(() => {
+    const rawData = data?.consistency?.weekly_data || []
+    const groups = {}
+    rawData.forEach(item => {
+      const date = new Date(item.week)
+      if (Number.isNaN(date.getTime())) return
+
+      let key = ''
+      if (timelinePeriod === 'weekly') {
+        key = shortDateLabel(item.week)
+      } else if (timelinePeriod === 'monthly') {
+        key = date.toLocaleString('en', { month: 'short', year: '2-digit' })
+      } else if (timelinePeriod === 'quaterly') {
+        const quarter = Math.floor(date.getMonth() / 3) + 1
+        key = `Q${quarter} ${date.getFullYear().toString().slice(-2)}`
+      }
+
+      if (!groups[key]) {
+        groups[key] = { label: key, contributions: 0, rawDate: date }
+      }
+      groups[key].contributions += Number(item.contributions || 0)
+    })
+
+    const sortedGroups = Object.values(groups).sort((a, b) => a.rawDate - b.rawDate)
+    
+    return sortedGroups.map(g => {
+      const base = g.contributions
+      return {
+        label: g.label,
+        commits: base,
+        prs: Math.max(0, Math.round(base * 0.28)),
+        issues: Math.max(0, Math.round(base * 0.16)),
+      }
+    })
+  }, [data, timelinePeriod])
+
   const skillData = useMemo(() => buildSkillDistribution(data), [data])
   const projectQuality = useMemo(() => buildProjectQuality(data), [data])
   const collaboration = useMemo(() => buildCollaborationActivity(data), [data])
@@ -489,18 +526,39 @@ function GitHubAnalyticsPanel({ data, canRefresh, onRangeChange }) {
 
       <div className="card chart-card chart-card-wide">
         {timeline.length > 0 ? (
-          <ResponsiveContainer width="100%" height={280}>
-            <RechartsLineChart data={timeline} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-              <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
-              <XAxis dataKey="label" tick={{ fill: 'var(--muted)', fontSize: 12 }} axisLine={{ stroke: 'var(--border)' }} tickLine={false} />
-              <YAxis tick={{ fill: 'var(--muted)', fontSize: 12 }} axisLine={{ stroke: 'var(--border)' }} tickLine={false} allowDecimals={false} />
-              <Tooltip contentStyle={{ background: 'var(--surface)', border: '1.5px solid var(--border)', borderRadius: 12, color: 'var(--text)' }} />
-              <Legend />
-              <Line type="monotone" dataKey="commits" stroke="var(--accent)" strokeWidth={2.5} dot={false} name="Commits" />
-              <Line type="monotone" dataKey="prs" stroke="var(--good)" strokeWidth={2.5} dot={false} name="PRs" />
-              <Line type="monotone" dataKey="issues" stroke="var(--warn)" strokeWidth={2.5} dot={false} name="Issues" />
-            </RechartsLineChart>
-          </ResponsiveContainer>
+          <>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem' }}>
+              <h3 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--accent)' }}>Activity timeline</h3>
+              <div className="range-selector">
+                {[
+                  { value: 'weekly', label: 'Weekly' },
+                  { value: 'monthly', label: 'Monthly' },
+                  { value: 'quaterly', label: 'Quarterly' }
+                ].map(p => (
+                  <button
+                    key={p.value}
+                    type="button"
+                    className={`range-pill ${timelinePeriod === p.value ? 'is-active' : ''}`}
+                    onClick={() => setTimelinePeriod(p.value)}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <ResponsiveContainer width="100%" height={280}>
+              <RechartsLineChart data={timeline} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
+                <XAxis dataKey="label" tick={{ fill: 'var(--muted)', fontSize: 12 }} axisLine={{ stroke: 'var(--border)' }} tickLine={false} />
+                <YAxis tick={{ fill: 'var(--muted)', fontSize: 12 }} axisLine={{ stroke: 'var(--border)' }} tickLine={false} allowDecimals={false} />
+                <Tooltip contentStyle={{ background: 'var(--surface)', border: '1.5px solid var(--border)', borderRadius: 12, color: 'var(--text)' }} />
+                <Legend />
+                <Line type="monotone" dataKey="commits" stroke="var(--accent)" strokeWidth={2.5} dot={false} name="Commits" />
+                <Line type="monotone" dataKey="prs" stroke="var(--good)" strokeWidth={2.5} dot={false} name="PRs" />
+                <Line type="monotone" dataKey="issues" stroke="var(--warn)" strokeWidth={2.5} dot={false} name="Issues" />
+              </RechartsLineChart>
+            </ResponsiveContainer>
+          </>
         ) : (
           <ChartEmpty title="Development activity over time" message="No GitHub activity data is available for this account yet." />
         )}

@@ -81,7 +81,7 @@ const GITHUB_RANGE_OPTIONS = [
   { value: '12m', label: '12 months' },
 ]
 
-const PIE_PALETTE = ['#38bdf8', '#34d399', '#fbbf24', '#a78bfa', '#fb7185', '#f97316', '#22c55e', '#60a5fa']
+const PIE_PALETTE = ['#274C77', '#6096BA', '#A3CEF1', '#4F5D95', '#8B8C89', '#34d399', '#fbbf24', '#fb7185']
 
 function clamp(value, minimum, maximum) {
   return Math.max(minimum, Math.min(value, maximum))
@@ -325,8 +325,8 @@ function Heatmap({ weeks, colorScheme = 'green', title }) {
   if (!weeks || weeks.length === 0) return <div className="heatmap-empty"><p className="muted">No data available.</p></div>
 
   const colors = colorScheme === 'green'
-    ? ['rgba(30,38,54,0.6)', '#0e4429', '#006d32', '#26a641', '#39d353']
-    : ['rgba(30,38,54,0.6)', '#4a2006', '#92400e', '#d97706', '#fbbf24']
+    ? ['rgba(24, 50, 74, 0.08)', '#c6f6d5', '#9ae6b4', '#48bb78', '#2f855a']
+    : ['rgba(24, 50, 74, 0.08)', '#feebc8', '#fbd38d', '#f6ad55', '#dd6b20']
 
   function level(count) {
     if (count === 0) return 0
@@ -487,14 +487,14 @@ function GitHubAnalyticsPanel({ data, canRefresh, onRangeChange }) {
         {timeline.length > 0 ? (
           <ResponsiveContainer width="100%" height={280}>
             <RechartsLineChart data={timeline} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-              <CartesianGrid stroke="rgba(148,163,184,0.12)" strokeDasharray="3 3" />
-              <XAxis dataKey="label" tick={{ fill: '#7e93af', fontSize: 12 }} axisLine={{ stroke: 'rgba(148,163,184,0.18)' }} tickLine={false} />
-              <YAxis tick={{ fill: '#7e93af', fontSize: 12 }} axisLine={{ stroke: 'rgba(148,163,184,0.18)' }} tickLine={false} allowDecimals={false} />
-              <Tooltip contentStyle={{ background: '#09111d', border: '1px solid rgba(148,163,184,0.16)', borderRadius: 12, color: '#e5eefc' }} />
+              <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
+              <XAxis dataKey="label" tick={{ fill: 'var(--muted)', fontSize: 12 }} axisLine={{ stroke: 'var(--border)' }} tickLine={false} />
+              <YAxis tick={{ fill: 'var(--muted)', fontSize: 12 }} axisLine={{ stroke: 'var(--border)' }} tickLine={false} allowDecimals={false} />
+              <Tooltip contentStyle={{ background: 'var(--surface)', border: '1.5px solid var(--border)', borderRadius: 12, color: 'var(--text)' }} />
               <Legend />
-              <Line type="monotone" dataKey="commits" stroke="#38bdf8" strokeWidth={2.5} dot={false} name="Commits" />
-              <Line type="monotone" dataKey="prs" stroke="#34d399" strokeWidth={2.5} dot={false} name="PRs" />
-              <Line type="monotone" dataKey="issues" stroke="#fbbf24" strokeWidth={2.5} dot={false} name="Issues" />
+              <Line type="monotone" dataKey="commits" stroke="var(--accent)" strokeWidth={2.5} dot={false} name="Commits" />
+              <Line type="monotone" dataKey="prs" stroke="var(--good)" strokeWidth={2.5} dot={false} name="PRs" />
+              <Line type="monotone" dataKey="issues" stroke="var(--warn)" strokeWidth={2.5} dot={false} name="Issues" />
             </RechartsLineChart>
           </ResponsiveContainer>
         ) : (
@@ -540,7 +540,7 @@ function GitHubAnalyticsPanel({ data, canRefresh, onRangeChange }) {
                       >
                         {skillData.map((entry, index) => <Cell key={entry.name} fill={PIE_PALETTE[index % PIE_PALETTE.length]} />)}
                       </Pie>
-                      <Tooltip contentStyle={{ background: '#09111d', border: '1px solid rgba(148,163,184,0.16)', borderRadius: 12, color: '#e5eefc' }} />
+                      <Tooltip contentStyle={{ background: 'var(--surface)', border: '1.5px solid var(--border)', borderRadius: 12, color: 'var(--text)' }} />
                     </PieChart>
                   </ResponsiveContainer>
                   <div className="donut-center">
@@ -565,11 +565,11 @@ function GitHubAnalyticsPanel({ data, canRefresh, onRangeChange }) {
           {projectQuality.length > 0 ? (
             <ResponsiveContainer width="100%" height={240}>
               <RechartsBarChart data={projectQuality} layout="vertical" margin={{ top: 8, right: 12, left: 12, bottom: 8 }}>
-                <CartesianGrid stroke="rgba(148,163,184,0.12)" strokeDasharray="3 3" horizontal={false} />
-                <XAxis type="number" domain={[0, 100]} tick={{ fill: '#7e93af', fontSize: 12 }} axisLine={{ stroke: 'rgba(148,163,184,0.18)' }} tickLine={false} />
-                <YAxis type="category" dataKey="name" width={110} tick={{ fill: '#e5eefc', fontSize: 12 }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ background: '#09111d', border: '1px solid rgba(148,163,184,0.16)', borderRadius: 12, color: '#e5eefc' }} formatter={(value, name, payload) => [payload?.payload?.explanation || value, 'Quality signals']} />
-                <Bar dataKey="score" fill="#38bdf8" radius={[0, 10, 10, 0]} />
+                <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" horizontal={false} />
+                <XAxis type="number" domain={[0, 100]} tick={{ fill: 'var(--muted)', fontSize: 12 }} axisLine={{ stroke: 'var(--border)' }} tickLine={false} />
+                <YAxis type="category" dataKey="name" width={110} tick={{ fill: 'var(--text)', fontSize: 12 }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ background: 'var(--surface)', border: '1.5px solid var(--border)', borderRadius: 12, color: 'var(--text)' }} formatter={(value, name, payload) => [payload?.payload?.explanation || value, 'Quality signals']} />
+                <Bar dataKey="score" fill="var(--accent)" radius={[0, 10, 10, 0]} />
               </RechartsBarChart>
             </ResponsiveContainer>
           ) : (
@@ -723,28 +723,28 @@ function GitHubSection({ data, canRefresh = false, onRangeChange }) {
             <AreaChart data={aggregatedData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="weeklyFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#34d399" stopOpacity={0.35} />
-                  <stop offset="100%" stopColor="#34d399" stopOpacity={0.02} />
+                  <stop offset="0%" stopColor="var(--good)" stopOpacity={0.35} />
+                  <stop offset="100%" stopColor="var(--good)" stopOpacity={0.02} />
                 </linearGradient>
               </defs>
-              <CartesianGrid stroke="rgba(148,163,184,0.10)" strokeDasharray="3 3" />
+              <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
               <XAxis
                 dataKey="label"
-                tick={{ fill: '#7e93af', fontSize: 11 }}
-                axisLine={{ stroke: 'rgba(148,163,184,0.18)' }}
+                tick={{ fill: 'var(--muted)', fontSize: 11 }}
+                axisLine={{ stroke: 'var(--border)' }}
                 tickLine={false}
               />
               <YAxis
-                tick={{ fill: '#7e93af', fontSize: 11 }}
-                axisLine={{ stroke: 'rgba(148,163,184,0.18)' }}
+                tick={{ fill: 'var(--muted)', fontSize: 11 }}
+                axisLine={{ stroke: 'var(--border)' }}
                 tickLine={false}
                 allowDecimals={false}
               />
-              <Tooltip contentStyle={{ background: '#09111d', border: '1px solid rgba(148,163,184,0.16)', borderRadius: 12, color: '#e5eefc' }} />
+              <Tooltip contentStyle={{ background: 'var(--surface)', border: '1.5px solid var(--border)', borderRadius: 12, color: 'var(--text)' }} />
               <Area
                 type="monotone"
                 dataKey="contributions"
-                stroke="#34d399"
+                stroke="var(--good)"
                 strokeWidth={2.5}
                 fill="url(#weeklyFill)"
                 dot={false}
@@ -1135,18 +1135,18 @@ function LeetCodeSection({ data }) {
           <div>
             <ResponsiveContainer width="100%" height={260}>
               <RechartsLineChart data={growthData} margin={{ top: 12, right: 12, left: 0, bottom: 8 }}>
-                <CartesianGrid stroke="rgba(148,163,184,0.12)" strokeDasharray="3 3" />
-                <XAxis dataKey="date" tick={{ fill: '#7e93af', fontSize: 11 }} tickLine={false} />
-                <YAxis tick={{ fill: '#7e93af', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ background: '#09111d', border: '1px solid rgba(148,163,184,0.16)', borderRadius: 12, color: '#e5eefc' }} />
+                <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
+                <XAxis dataKey="date" tick={{ fill: 'var(--muted)', fontSize: 11 }} tickLine={false} />
+                <YAxis tick={{ fill: 'var(--muted)', fontSize: 11 }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ background: 'var(--surface)', border: '1.5px solid var(--border)', borderRadius: 12, color: 'var(--text)' }} />
                 <Legend verticalAlign="top" height={36} iconType="circle" />
-                <Line type="monotone" name="Total Solved" dataKey="total" stroke="var(--accent)" strokeWidth={3} dot={false} activeDot={{ r: 6 }} />
-                <Line type="monotone" name="Easy" dataKey="easy" stroke="#34d399" strokeWidth={2} dot={false} />
-                <Line type="monotone" name="Medium" dataKey="medium" stroke="#fbbf24" strokeWidth={2} dot={false} />
-                <Line type="monotone" name="Hard" dataKey="hard" stroke="#fb7185" strokeWidth={2} dot={false} />
+                <Line type="monotone" name="Total Solved" dataKey="total" stroke="var(--primary)" strokeWidth={3} dot={false} activeDot={{ r: 6 }} />
+                <Line type="monotone" name="Easy" dataKey="easy" stroke="var(--good)" strokeWidth={2} dot={false} />
+                <Line type="monotone" name="Medium" dataKey="medium" stroke="var(--warn)" strokeWidth={2} dot={false} />
+                <Line type="monotone" name="Hard" dataKey="hard" stroke="var(--bad)" strokeWidth={2} dot={false} />
               </RechartsLineChart>
             </ResponsiveContainer>
-            <div style={{ marginTop: '0.85rem', padding: '0.75rem 1rem', background: 'rgba(56,189,248,0.04)', border: '1px solid rgba(56,189,248,0.1)', borderRadius: 12, fontSize: '0.82rem', color: '#cbd5e1' }}>
+            <div style={{ marginTop: '0.85rem', padding: '0.75rem 1rem', background: 'rgba(39, 76, 119, 0.06)', border: '1px solid var(--border)', borderRadius: 12, fontSize: '0.82rem', color: 'var(--text)' }}>
               <strong>Timeline Diagnostics:</strong> {growthInsight}
             </div>
           </div>
@@ -1178,11 +1178,11 @@ function LeetCodeSection({ data }) {
                       onMouseEnter={(_, index) => setActiveLCIndex(index)}
                       onMouseLeave={() => setActiveLCIndex(-1)}
                     >
-                      <Cell fill="#34d399" />
-                      <Cell fill="#fbbf24" />
-                      <Cell fill="#fb7185" />
+                      <Cell fill="var(--good)" />
+                      <Cell fill="var(--warn)" />
+                      <Cell fill="var(--bad)" />
                     </Pie>
-                    <Tooltip contentStyle={{ background: '#09111d', border: '1px solid rgba(148,163,184,0.16)', borderRadius: 12, color: '#e5eefc' }} />
+                    <Tooltip contentStyle={{ background: 'var(--surface)', border: '1.5px solid var(--border)', borderRadius: 12, color: 'var(--text)' }} />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="donut-center" style={{ pointerEvents: 'none' }}>
@@ -1196,9 +1196,9 @@ function LeetCodeSection({ data }) {
               </div>
             </div>
             <div className="difficulty-legend" style={{ minWidth: 100 }}>
-              <div className="diff-item"><span className="diff-dot" style={{ background: '#34d399' }} /> Easy <strong>{easy}</strong></div>
-              <div className="diff-item"><span className="diff-dot" style={{ background: '#fbbf24' }} /> Med <strong>{med}</strong></div>
-              <div className="diff-item"><span className="diff-dot" style={{ background: '#fb7185' }} /> Hard <strong>{hard}</strong></div>
+              <div className="diff-item"><span className="diff-dot" style={{ background: 'var(--good)' }} /> Easy <strong>{easy}</strong></div>
+              <div className="diff-item"><span className="diff-dot" style={{ background: 'var(--warn)' }} /> Med <strong>{med}</strong></div>
+              <div className="diff-item"><span className="diff-dot" style={{ background: 'var(--bad)' }} /> Hard <strong>{hard}</strong></div>
             </div>
           </div>
         </div>
@@ -1210,13 +1210,13 @@ function LeetCodeSection({ data }) {
           {topicData.some(t => t.value > 0) ? (
             <ResponsiveContainer width="100%" height={240}>
               <RechartsBarChart data={topicData} layout="vertical" margin={{ top: 8, right: 12, left: 16, bottom: 8 }}>
-                <CartesianGrid stroke="rgba(148,163,184,0.12)" strokeDasharray="3 3" horizontal={false} />
-                <XAxis type="number" tick={{ fill: '#7e93af', fontSize: 11 }} axisLine={{ stroke: 'rgba(148,163,184,0.18)' }} tickLine={false} />
-                <YAxis type="category" dataKey="name" width={110} tick={{ fill: '#e5eefc', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ background: '#09111d', border: '1px solid rgba(148,163,184,0.16)', borderRadius: 12, color: '#e5eefc' }} />
-                <Bar dataKey="value" fill="#fbbf24" radius={[0, 4, 4, 0]}>
+                <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" horizontal={false} />
+                <XAxis type="number" tick={{ fill: 'var(--muted)', fontSize: 11 }} axisLine={{ stroke: 'var(--border)' }} tickLine={false} />
+                <YAxis type="category" dataKey="name" width={110} tick={{ fill: 'var(--text)', fontSize: 11 }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ background: 'var(--surface)', border: '1.5px solid var(--border)', borderRadius: 12, color: 'var(--text)' }} />
+                <Bar dataKey="value" fill="var(--warn)" radius={[0, 4, 4, 0]}>
                   {topicData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={index === 0 ? 'var(--accent)' : 'rgba(251,191,36,0.7)'} />
+                    <Cell key={`cell-${index}`} fill={index === 0 ? 'var(--primary)' : 'rgba(226, 138, 0, 0.7)'} />
                   ))}
                 </Bar>
               </RechartsBarChart>
@@ -1301,17 +1301,17 @@ function KaggleSection({ data }) {
         <div className="donut-row">
           <DonutChart
             segments={[
-              { value: profile?.competitions_participated || 0, color: '#7dd3fc', label: 'Competitions' },
-              { value: profile?.datasets || 0, color: '#34d399', label: 'Datasets' },
-              { value: profile?.notebooks || 0, color: '#c084fc', label: 'Notebooks' },
+              { value: profile?.competitions_participated || 0, color: 'var(--primary)', label: 'Competitions' },
+              { value: profile?.datasets || 0, color: 'var(--secondary)', label: 'Datasets' },
+              { value: profile?.notebooks || 0, color: 'var(--accent-base)', label: 'Notebooks' },
             ]}
             label={(profile?.competitions_participated || 0) + (profile?.datasets || 0) + (profile?.notebooks || 0)}
             sublabel="Total Work"
           />
           <div className="difficulty-legend">
-            <div className="diff-item"><span className="diff-dot" style={{ background: '#7dd3fc' }} />Competitions <strong>{profile?.competitions_participated || 0}</strong></div>
-            <div className="diff-item"><span className="diff-dot" style={{ background: '#34d399' }} />Datasets <strong>{profile?.datasets || 0}</strong></div>
-            <div className="diff-item"><span className="diff-dot" style={{ background: '#c084fc' }} />Notebooks <strong>{profile?.notebooks || 0}</strong></div>
+            <div className="diff-item"><span className="diff-dot" style={{ background: 'var(--primary)' }} />Competitions <strong>{profile?.competitions_participated || 0}</strong></div>
+            <div className="diff-item"><span className="diff-dot" style={{ background: 'var(--secondary)' }} />Datasets <strong>{profile?.datasets || 0}</strong></div>
+            <div className="diff-item"><span className="diff-dot" style={{ background: 'var(--accent-base)' }} />Notebooks <strong>{profile?.notebooks || 0}</strong></div>
           </div>
         </div>
       </div>
@@ -1337,7 +1337,7 @@ function KaggleSection({ data }) {
           <BarChart
             data={activity.activity_timeline}
             labelKey="month" valueKey="count"
-            color="#c084fc" height={120}
+            color="var(--secondary)" height={120}
           />
         </div>
       )}
@@ -1390,9 +1390,9 @@ function KaggleSection({ data }) {
    ═══════════════════════════════════════════════════════════════════════ */
 
 const PLATFORM_NAV = [
-  { id: 'github', label: 'GitHub', icon: <GitHubIcon />, color: '#34d399' },
-  { id: 'leetcode', label: 'LeetCode', icon: <LeetCodeIcon />, color: '#fbbf24' },
-  { id: 'kaggle', label: 'Kaggle', icon: <KaggleIcon />, color: '#7dd3fc' },
+  { id: 'github', label: 'GitHub', icon: <GitHubIcon />, color: '#2E7D32' },
+  { id: 'leetcode', label: 'LeetCode', icon: <LeetCodeIcon />, color: '#E28A00' },
+  { id: 'kaggle', label: 'Kaggle', icon: <KaggleIcon />, color: '#274C77' },
 ]
 
 function FloatingPlatformNav({ activePlatforms, activePlatform, onPlatformChange }) {
@@ -1441,7 +1441,7 @@ function Dashboard({ data, form, onBack, canRefreshGithub, onRefreshGitHub }) {
     try {
       const el = dashRef.current
       const canvas = await html2canvas(el, {
-        backgroundColor: '#06090f',
+        backgroundColor: '#E7ECEF',
         scale: 1.5,
         useCORS: true,
         logging: false,

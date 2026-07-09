@@ -270,7 +270,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 .landing-badge-bottom {
-  color: #bfefff;
+  color: #274c77;
 }
 
 .feature-card {
@@ -368,8 +368,20 @@ a { color: inherit; text-decoration: none; }
   display: flex; align-items: center; gap: 0.4rem;
   transition: border-color 0.2s ease, background 0.2s ease;
 }
-.back-btn:hover, .pdf-btn:hover { border-color: var(--border-hover); background: rgba(39, 76, 119, 0.06); }
+.back-btn:hover, .pdf-btn:hover, .theme-toggle-btn:hover { border-color: var(--border-hover); background: rgba(39, 76, 119, 0.06); }
 .pdf-btn:disabled { opacity: 0.6; cursor: progress; }
+
+.theme-toggle-btn {
+  appearance: none; border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.6rem 0.85rem;
+  font-weight: 600; font-size: 0.85rem;
+  color: var(--text);
+  background: var(--panel);
+  cursor: pointer;
+  display: flex; align-items: center; gap: 0.4rem;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
 
 /* ── Dash Content ──────────────────────────────────────────────────── */
 .dash-content {
@@ -1095,4 +1107,159 @@ a { color: inherit; text-decoration: none; }
   .dash-nav { display: none; }
   .orb { display: none; }
   body { background: #ffffff; }
+}
+
+/* ── Theme Overrides: Dark Mode ────────────────────────────────────── */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #06090f;
+  --panel: rgba(14, 20, 36, 0.78);
+  --panel-strong: rgba(7, 11, 20, 0.9);
+  --border: rgba(148, 163, 184, 0.1);
+  --border-hover: rgba(125, 211, 252, 0.2);
+  --text: #e5eefc;
+  --muted: #7e93af;
+  --accent: #7dd3fc;
+  --accent-strong: #38bdf8;
+  --good: #34d399;
+  --warn: #fbbf24;
+  --bad: #fb7185;
+  --shadow: 0 20px 60px rgba(2, 6, 23, 0.5);
+}
+
+[data-theme="dark"] .orb-1 { background: rgba(56, 189, 248, 0.2); }
+[data-theme="dark"] .orb-2 { background: rgba(52, 211, 153, 0.15); }
+[data-theme="dark"] .orb-3 { background: rgba(192, 132, 252, 0.12); }
+
+[data-theme="dark"] .landing-badge-line {
+  background: linear-gradient(90deg, transparent, rgba(125, 211, 252, 0.3), transparent);
+}
+
+[data-theme="dark"] .landing-badge {
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  color: var(--accent);
+}
+
+[data-theme="dark"] .landing-badge-bottom {
+  color: #bfefff;
+}
+
+[data-theme="dark"] .input-wrap {
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+[data-theme="dark"] .input-wrap:hover {
+  border-color: rgba(125, 211, 252, 0.3);
+  background: rgba(7, 11, 20, 0.98);
+}
+[data-theme="dark"] .input-wrap:focus-within {
+  border-color: rgba(125, 211, 252, 0.5);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.08);
+}
+
+[data-theme="dark"] .input-icon-github { color: #f3f4f6; }
+[data-theme="dark"] .input-icon-leetcode { color: #f59e0b; }
+[data-theme="dark"] .input-icon-kaggle { color: #7dd3fc; }
+[data-theme="dark"] .input-wrap input::placeholder { color: #4a5568; }
+
+[data-theme="dark"] .landing-err {
+  background: rgba(251, 113, 133, 0.08);
+  border: 1px solid rgba(251, 113, 133, 0.2);
+  color: #fecdd3;
+}
+
+[data-theme="dark"] .cta-btn {
+  color: #03111d;
+  background: linear-gradient(135deg, var(--accent), var(--good));
+  box-shadow: 0 12px 36px rgba(56, 189, 248, 0.2);
+}
+[data-theme="dark"] .cta-btn:hover:not(:disabled) {
+  box-shadow: 0 16px 44px rgba(56, 189, 248, 0.28);
+}
+
+[data-theme="dark"] .spinner {
+  border: 2px solid rgba(3,17,29,0.3); border-top-color: #03111d;
+}
+
+[data-theme="dark"] .dash-nav {
+  background: rgba(6, 9, 15, 0.65);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .back-btn:hover, [data-theme="dark"] .pdf-btn:hover, [data-theme="dark"] .theme-toggle-btn:hover {
+  background: rgba(56, 189, 248, 0.06);
+}
+
+[data-theme="dark"] .section-err {
+  background: rgba(251, 113, 133, 0.06);
+  border: 1px solid rgba(251, 113, 133, 0.15);
+  color: #fecdd3;
+}
+
+[data-theme="dark"] .range-selector {
+  background: rgba(7, 11, 20, 0.65);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+}
+
+[data-theme="dark"] .range-pill.is-active {
+  background: linear-gradient(135deg, var(--accent), var(--good));
+  color: #03111d;
+}
+
+[data-theme="dark"] .metric-tile {
+  background: rgba(7, 11, 20, 0.75);
+}
+
+[data-theme="dark"] .chart-empty {
+  border: 1px dashed rgba(148, 163, 184, 0.2);
+  background: rgba(7, 11, 20, 0.45);
+}
+
+[data-theme="dark"] .floating-nav-btn {
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  background: rgba(14, 20, 36, 0.92);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+[data-theme="dark"] .floating-nav-btn:hover {
+  background: rgba(14, 20, 36, 0.98);
+  border-color: var(--nav-accent, var(--accent));
+  box-shadow: 0 4px 28px rgba(0, 0, 0, 0.45), 0 0 12px color-mix(in srgb, var(--nav-accent, var(--accent)) 25%, transparent);
+}
+[data-theme="dark"] .floating-nav-btn.is-active {
+  background: rgba(14, 20, 36, 0.98);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--nav-accent, var(--accent)) 20%, transparent);
+}
+
+[data-theme="dark"] .floating-nav-github { --nav-accent: #34d399; }
+[data-theme="dark"] .floating-nav-leetcode { --nav-accent: #fbbf24; }
+[data-theme="dark"] .floating-nav-kaggle { --nav-accent: #7dd3fc; }
+
+[data-theme="dark"] .is-excellent { color: #bbf7d0; background: rgba(52,211,153,0.08); border-color: rgba(52,211,153,0.15); }
+[data-theme="dark"] .is-steady { color: #fef08a; background: rgba(251,191,36,0.06); border-color: rgba(251,191,36,0.12); }
+[data-theme="dark"] .is-needs-attention { color: #fecdd3; background: rgba(251,113,133,0.06); border-color: rgba(251,113,133,0.12); }
+
+[data-theme="dark"] .stat-icon {
+  background: rgba(56, 189, 248, 0.06);
+}
+
+[data-theme="dark"] .donut-center strong {
+  background: linear-gradient(135deg, var(--accent), var(--good));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+
+[data-theme="dark"] .hm-filled:hover {
+  outline: 2px solid rgba(255,255,255,0.4);
+}
+[data-theme="dark"] .hm-tip {
+  background: rgba(0,0,0,0.88);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+}
+
+[data-theme="dark"] .repo-card {
+  background: rgba(15, 23, 42, 0.5);
+}
+
+@media print {
+  [data-theme="dark"] body { background: #0a0e18; }
 }

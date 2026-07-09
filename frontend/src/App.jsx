@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useMemo } from 'react'
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react'
 import html2canvas from 'html2canvas'
 import { jsPDF } from 'jspdf'
 import {
@@ -320,13 +320,17 @@ function DonutChart({ segments, size = 160, thickness = 20, label, sublabel }) {
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
-function Heatmap({ weeks, colorScheme = 'green', title }) {
+function Heatmap({ weeks, colorScheme = 'green', title, theme }) {
   const [tip, setTip] = useState(null)
   if (!weeks || weeks.length === 0) return <div className="heatmap-empty"><p className="muted">No data available.</p></div>
 
-  const colors = colorScheme === 'green'
-    ? ['rgba(24, 50, 74, 0.08)', '#c6f6d5', '#9ae6b4', '#48bb78', '#2f855a']
-    : ['rgba(24, 50, 74, 0.08)', '#feebc8', '#fbd38d', '#f6ad55', '#dd6b20']
+  const colors = theme === 'dark'
+    ? (colorScheme === 'green'
+      ? ['rgba(30,38,54,0.6)', '#0e4429', '#006d32', '#26a641', '#39d353']
+      : ['rgba(30,38,54,0.6)', '#4a2006', '#92400e', '#d97706', '#fbbf24'])
+    : (colorScheme === 'green'
+      ? ['rgba(24, 50, 74, 0.08)', '#c6f6d5', '#9ae6b4', '#48bb78', '#2f855a']
+      : ['rgba(24, 50, 74, 0.08)', '#feebc8', '#fbd38d', '#f6ad55', '#dd6b20'])
 
   function level(count) {
     if (count === 0) return 0
@@ -585,7 +589,7 @@ function GitHubAnalyticsPanel({ data, canRefresh, onRangeChange }) {
    GITHUB SECTION
    ═══════════════════════════════════════════════════════════════════════ */
 
-function GitHubSection({ data, canRefresh = false, onRangeChange }) {
+function GitHubSection({ data, canRefresh = false, onRangeChange, theme }) {
   if (!data) return null
   const { profile, contributions, consistency, top_repositories } = data
   if (profile?.error) return <div className="section-err">GitHub: {profile.error}</div>
@@ -813,7 +817,7 @@ function GitHubSection({ data, canRefresh = false, onRangeChange }) {
    LEETCODE SECTION
    ═══════════════════════════════════════════════════════════════════════ */
 
-function LeetCodeSection({ data }) {
+function LeetCodeSection({ data, theme }) {
   if (!data) return null
   const { profile, calendar, snapshots } = data
   if (profile?.error) return <div className="section-err">LeetCode: {profile.error}</div>
@@ -1233,7 +1237,7 @@ function LeetCodeSection({ data }) {
           {heatmapWeeks.length > 0 ? (
             <div>
               <div style={{ marginBottom: '1rem' }}>
-                <Heatmap weeks={heatmapWeeks} colorScheme="amber" title="" />
+                <Heatmap weeks={heatmapWeeks} colorScheme="amber" title="" theme={theme} />
               </div>
               <div className="stats-row inner" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
                 <StatCard icon="🔥" value={`${calendar?.streak || 0}d`} label="Streak" />
@@ -1263,7 +1267,7 @@ function LeetCodeSection({ data }) {
    KAGGLE SECTION
    ═══════════════════════════════════════════════════════════════════════ */
 
-function KaggleSection({ data }) {
+function KaggleSection({ data, theme }) {
   if (!data) return null
   const { profile, activity } = data
   if (profile?.error) return <div className="section-err">Kaggle: {profile.error}</div>
@@ -1418,7 +1422,7 @@ function FloatingPlatformNav({ activePlatforms, activePlatform, onPlatformChange
    DASHBOARD PAGE
    ═══════════════════════════════════════════════════════════════════════ */
 
-function Dashboard({ data, form, onBack, canRefreshGithub, onRefreshGitHub }) {
+function Dashboard({ data, form, onBack, canRefreshGithub, onRefreshGitHub, theme, toggleTheme }) {
   const dashRef = useRef(null)
   const [exporting, setExporting] = useState(false)
   const githubData = data?.github || (data?.profile ? data : null)
@@ -1441,7 +1445,7 @@ function Dashboard({ data, form, onBack, canRefreshGithub, onRefreshGitHub }) {
     try {
       const el = dashRef.current
       const canvas = await html2canvas(el, {
-        backgroundColor: '#E7ECEF',
+        backgroundColor: theme === 'dark' ? '#06090f' : '#E7ECEF',
         scale: 1.5,
         useCORS: true,
         logging: false,
@@ -1512,21 +1516,26 @@ function Dashboard({ data, form, onBack, canRefreshGithub, onRefreshGitHub }) {
         <div className="dash-nav-center">
           <h1>Student Performance Analysis</h1>
         </div>
-        <button className="pdf-btn" onClick={downloadPDF} disabled={exporting}>
-          {exporting ? <><span className="spinner" /> Generating…</> : '📄 Download PDF'}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <button className="theme-toggle-btn" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}>
+            {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
+          </button>
+          <button className="pdf-btn" onClick={downloadPDF} disabled={exporting}>
+            {exporting ? <><span className="spinner" /> Generating…</> : '📄 Download PDF'}
+          </button>
+        </div>
       </nav>
 
       <div className="dash-content" ref={dashRef}>
         {/* Render only the active platform page */}
         {activePlatform === 'github' && (
-          <GitHubSection data={githubData} canRefresh={canRefreshGithub} onRangeChange={onRefreshGitHub} />
+          <GitHubSection data={githubData} canRefresh={canRefreshGithub} onRangeChange={onRefreshGitHub} theme={theme} />
         )}
         {activePlatform === 'leetcode' && (
-          <LeetCodeSection data={data.leetcode} />
+          <LeetCodeSection data={data.leetcode} theme={theme} />
         )}
         {activePlatform === 'kaggle' && (
-          <KaggleSection data={data.kaggle} />
+          <KaggleSection data={data.kaggle} theme={theme} />
         )}
       </div>
     </div>
@@ -1544,6 +1553,16 @@ export default function App() {
   const [loading, setLoading] = useState(false)
   const [analysisMode, setAnalysisMode] = useState('multi') // 'multi' | 'github'
   const [githubRange, setGithubRange] = useState('12m')
+  const [theme, setTheme] = useState(() => localStorage.getItem('app-theme') || 'light')
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark')
+    } else {
+      document.documentElement.removeAttribute('data-theme')
+    }
+    localStorage.setItem('app-theme', theme)
+  }, [theme])
 
   const handleAnalyze = useCallback(async (formData, requestedRange = githubRange) => {
     setForm(formData)
@@ -1597,6 +1616,8 @@ export default function App() {
         onBack={() => setPage('landing')}
         canRefreshGithub={analysisMode === 'github'}
         onRefreshGitHub={refreshGitHub}
+        theme={theme}
+        toggleTheme={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
       />
     )
   }

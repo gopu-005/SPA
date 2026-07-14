@@ -4,7 +4,7 @@ from services.github_serviecs import (
     get_github_dashboard,
 )
 from services.leetcode_services import get_leetcode_data, get_leetcode_calendar, sync_leetcode_snapshots
-from services.kaggle_service import get_kaggle_data, get_kaggle_activity
+from services.kaggle_service import get_kaggle_data, get_kaggle_activity, sync_kaggle_snapshots
 from services.scoring import overall_score
 from services.summary import generate_summary
 
@@ -86,9 +86,15 @@ def dashboard_full():
         kaggle_profile = get_kaggle_data(kaggle_username)
         kaggle_activity = get_kaggle_activity(kaggle_username)
 
+        if kaggle_profile and not kaggle_profile.get("error"):
+            snapshots = sync_kaggle_snapshots(kaggle_username, kaggle_profile, kaggle_activity)
+        else:
+            snapshots = []
+
         result["kaggle"] = {
             "profile": kaggle_profile,
             "activity": kaggle_activity,
+            "snapshots": snapshots
         }
     else:
         result["kaggle"] = None

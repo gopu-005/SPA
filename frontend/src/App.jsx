@@ -18,6 +18,9 @@ import {
   AreaChart,
   Area,
   Sector,
+  ScatterChart,
+  Scatter,
+  ZAxis,
 } from 'recharts'
 
 const API = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '')
@@ -1326,123 +1329,381 @@ function LeetCodeSection({ data, theme }) {
    ═══════════════════════════════════════════════════════════════════════ */
 
 function KaggleSection({ data, theme }) {
+  const [timeRange, setTimeRange] = useState('12m')
+  const [portfolioTab, setPortfolioTab] = useState('all')
+  const [query, setQuery] = useState('')
+  const [sort, setSort] = useState('votes')
+  const [expandedCount, setExpandedCount] = useState(4)
+
   if (!data) return null
-  const { profile, activity } = data
+  const { profile, activity, snapshots } = data
   if (profile?.error) return <div className="section-err">Kaggle: {profile.error}</div>
+
+  // ── Expert System Archetypes ──────────────────────────────────────
+  const kScore = profile?.score || 0
+  const kNotebooks = profile?.notebooks || 0
+  const kDatasets = profile?.datasets || 0
+  const kMedals = profile?.medals || 0
+  const kCompetitions = profile?.competitions_participated || 0
+  const kVotes = (profile?.total_dataset_votes || 0) + (profile?.total_notebook_votes || 0)
+
+  const archetypes = {
+    master: {
+      name: 'Master Contributor',
+      class: 'is-excellent',
+      desc: 'Demonstrates exceptional competency in data science workflows, high community recognition, and advanced ML model engineering.',
+      rec: ['Benchmark model architecture against experts in Kaggle Featured Competitions.', 'Document winning solutions in public discussion write-ups or research drafts.', 'Mentor classmates or lead introductory workshops on tabular ML pipelines.']
+    },
+    explorer: {
+      name: 'Active Explorer',
+      class: 'is-steady',
+      desc: 'Strong active pipeline in publishing notebooks and datasets. Has solid foundations in EDA, with room to optimize search parameters and competition rankings.',
+      rec: ['Focus on hyperparameter tuning and model ensembling (stacking/blending) to lift ranks.', 'Improve published dataset usability scores by writing descriptive column metadata.', 'Participate in discussion boards to review feedback on notebook modeling logic.']
+    },
+    early: {
+      name: 'Early Explorer',
+      class: 'is-needs-attention',
+      desc: 'Has begun their data science journey with initial publications. Needs structured support to build consistency.',
+      rec: ['Complete Kaggle Learn courses for Python, Pandas, and Intro to Machine Learning.', 'Participate in Getting Started competitions (e.g. Spaceship Titanic) to practice classification.', 'Clone popular public notebooks and modify them locally to understand standard conventions.']
+    },
+    inactive: {
+      name: 'Inactive Space',
+      class: 'is-needs-attention',
+      desc: 'The student has registered an account but has minimal or no active participation on the Kaggle platform.',
+      rec: ['Link Kaggle account to a homework dataset and complete one exploratory analysis notebook.', 'Explore popular public notebooks for Getting Started datasets to observe basic setups.', 'Select a dataset of personal interest (sports, movies, etc.) and run simple summary stats.']
+    }
+  }
+
+  const type = kScore >= 80 || (kMedals >= 5 && kVotes >= 100) ? 'master' :
+               kScore >= 50 || (kNotebooks + kDatasets >= 5 && kVotes >= 10) ? 'explorer' :
+               (kNotebooks + kDatasets + kCompetitions > 0) ? 'early' : 'inactive'
+  const arc = archetypes[type]
+
+  // ── Activity Timeline Filtering ────────────────────────────────────
+  const rangeSnapshots = useMemo(() => {
+    if (!snapshots || snapshots.length === 0) return []
+    const limit = timeRange === '6m' ? 26 : 52
+    return snapshots.slice(-limit)
+  }, [snapshots, timeRange])
+
+  // ── Achievement Distribution Donut Chart ───────────────────────────
+  const latestSnap = snapshots && snapshots.length > 0 ? snapshots[snapshots.length - 1] : null
+  const medalSegments = useMemo(() => {
+    return [
+      { name: 'Competitions', value: latestSnap ? latestSnap.medals_competitions : 0, color: 'var(--accent)' },
+      { name: 'Notebooks', value: latestSnap ? latestSnap.medals_notebooks : 0, color: 'var(--warn)' },
+      { name: 'Datasets', value: latestSnap ? latestSnap.medals_datasets : 0, color: 'var(--secondary)' },
+      { name: 'Discussions', value: latestSnap ? latestSnap.medals_discussions : 0, color: 'var(--good)' },
+    ].filter(s => s.value > 0)
+  }, [latestSnap])
+
+  const totalMedals = medalSegments.reduce((a, s) => a + s.value, 0)
+  const hasMedals = totalMedals > 0
+
+  // ── Competition Performance Trend ──────────────────────────────────
+  const sortedCompetitions = useMemo(() => {
+    return [...(activity?.competitions_list || [])].sort((a, b) => new Date(a.date) - new Date(b.date))
+  }, [activity?.competitions_list])
+
+  const bestRank = useMemo(() => {
+    const ranks = sortedCompetitions.map(c => c.rank).filter(Boolean)
+    return ranks.length > 0 ? Math.min(...ranks) : null
+  }, [sortedCompetitions])
+
+  const bestPercentile = useMemo(() => {
+    const percentiles = sortedCompetitions.map(c => c.percentile).filter(p => typeof p === 'number')
+    return percentiles.length > 0 ? Math.min(...percentiles) : null
+  }, [sortedCompetitions])
+
+  // ── Work Impact Correlation Scatter Data ───────────────────────────
+  const dsImpact = useMemo(() => {
+    return (activity?.datasets_list || []).map(d => ({
+      name: d.title,
+      votes: d.votes || 0,
+      downloads: d.downloads || 0,
+      type: 'Dataset',
+      size: d.size || 0
+    }))
+  }, [activity?.datasets_list])
+
+  const nbImpact = useMemo(() => {
+    return (activity?.notebooks_list || []).map(n => ({
+      name: n.title,
+      votes: n.votes || 0,
+      downloads: 0,
+      type: 'Notebook',
+      size: 0
+    }))
+  }, [activity?.notebooks_list])
+
+  const impactData = [...dsImpact, ...nbImpact]
+  const hasImpactData = impactData.some(i => i.votes > 0 || i.downloads > 0)
+
+  // ── Publications Portfolio ──────────────────────────────────────────
+  const portfolioItems = useMemo(() => {
+    const ds = (activity?.datasets_list || []).map(d => ({ ...d, type: 'dataset', date: d.last_updated, badge: '📊 Dataset' }))
+    const nb = (activity?.notebooks_list || []).map(n => ({ ...n, type: 'notebook', date: n.last_run, badge: '📓 Notebook' }))
+    
+    let combined = portfolioTab === 'all' ? [...ds, ...nb] : (portfolioTab === 'datasets' ? ds : nb)
+
+    if (query) {
+      const q = query.toLowerCase()
+      combined = combined.filter(i => (i.title || '').toLowerCase().includes(q) || (i.tags || []).some(t => t.toLowerCase().includes(q)))
+    }
+
+    combined.sort((a, b) => sort === 'votes' ? (b.votes || 0) - (a.votes || 0) : new Date(b.date || 0) - new Date(a.date || 0))
+    return combined
+  }, [activity, portfolioTab, query, sort])
 
   return (
     <section className="platform-section" id="section-kaggle">
+      {/* Profile Header */}
       <div className="platform-header">
         <div className="platform-id">
-          <div className="platform-icon kg-icon">K</div>
+          <div className="platform-icon kg-icon" style={{ background: 'var(--primary)', color: '#fff', fontSize: '1.2rem', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '12px', width: '48px', height: '48px' }}>K</div>
           <div>
-            <h2>{profile?.name || profile?.username || 'Kaggle'}</h2>
+            <h2>{profile?.name || profile?.username || 'Kaggle Student'}</h2>
             <p className="muted">
-              {profile?.profile_url && <a href={profile.profile_url} target="_blank" rel="noreferrer" className="link">View profile ↗</a>}
+              {profile?.profile_url && <a href={profile.profile_url} target="_blank" rel="noreferrer" className="link" style={{ color: 'var(--accent)', textDecoration: 'underline' }}>View Profile ↗</a>}
             </p>
           </div>
         </div>
-        <div className={`platform-score ${scoreClass(profile?.score || 0)}`}>
-          <span>{profile?.score || 0}</span>
+        <div className={`platform-score ${scoreClass(kScore)}`}>
+          <span>{kScore}</span>
           <small>/100</small>
         </div>
       </div>
 
-      {/* Overview */}
+      {/* Top Overview Cards */}
       <div className="stats-row">
-        <StatCard icon="🏆" value={profile?.competitions_participated || 0} label="Competitions" />
-        <StatCard icon="📁" value={profile?.datasets || 0} label="Datasets" />
-        <StatCard icon="📓" value={profile?.notebooks || 0} label="Notebooks" />
-        <StatCard icon="🥇" value={profile?.medals || 0} label="Medals" />
+        <StatCard icon="🏆" value={kCompetitions} label="Competitions" />
+        <StatCard icon="📁" value={kDatasets} label="Datasets" />
+        <StatCard icon="📓" value={kNotebooks} label="Notebooks" />
+        <StatCard icon="🥇" value={kMedals} label="Total Medals" />
       </div>
 
-      {/* Activity Distribution Donut */}
-      <div className="card">
-        <p className="eyebrow">Activity breakdown</p>
-        <h3>What does this student do on Kaggle?</h3>
-        <div className="donut-row">
-          <DonutChart
-            segments={[
-              { value: profile?.competitions_participated || 0, color: 'var(--primary)', label: 'Competitions' },
-              { value: profile?.datasets || 0, color: 'var(--secondary)', label: 'Datasets' },
-              { value: profile?.notebooks || 0, color: 'var(--accent-base)', label: 'Notebooks' },
-            ]}
-            label={(profile?.competitions_participated || 0) + (profile?.datasets || 0) + (profile?.notebooks || 0)}
-            sublabel="Total Work"
-          />
-          <div className="difficulty-legend">
-            <div className="diff-item"><span className="diff-dot" style={{ background: 'var(--primary)' }} />Competitions <strong>{profile?.competitions_participated || 0}</strong></div>
-            <div className="diff-item"><span className="diff-dot" style={{ background: 'var(--secondary)' }} />Datasets <strong>{profile?.datasets || 0}</strong></div>
-            <div className="diff-item"><span className="diff-dot" style={{ background: 'var(--accent-base)' }} />Notebooks <strong>{profile?.notebooks || 0}</strong></div>
-          </div>
+      {/* Control Block */}
+      <div className="github-analytics-head" style={{ marginTop: '2rem', marginBottom: '1rem' }}>
+        <div>
+          <p className="eyebrow">Kaggle analytics</p>
+          <h3>Detailed Visual Metrics</h3>
+        </div>
+        <div className="range-selector">
+          {[{ value: '6m', label: '6 months' }, { value: '12m', label: '12 months' }].map(opt => (
+            <button key={opt.value} className={`range-pill ${timeRange === opt.value ? 'is-active' : ''}`} onClick={() => setTimeRange(opt.value)}>{opt.label}</button>
+          ))}
         </div>
       </div>
 
-      {/* Engagement Stats */}
-      {(profile?.total_dataset_votes > 0 || profile?.total_notebook_votes > 0) && (
-        <div className="card">
-          <p className="eyebrow">Community engagement</p>
-          <h3>Votes &amp; recognition</h3>
-          <div className="stats-row inner">
-            <StatCard icon="👍" value={profile?.total_dataset_votes || 0} label="Dataset Votes" />
-            <StatCard icon="❤️" value={profile?.total_notebook_votes || 0} label="Notebook Votes" />
-            <StatCard icon="👥" value={profile?.followers || 0} label="Followers" />
+      <div className="insight-below-row">
+        {/* Metric 1: Activity Timeline */}
+        <div className="card chart-card">
+          <p className="eyebrow">Growth &amp; consistency</p>
+          <h3>Data Science Activity over Time</h3>
+          {rangeSnapshots.length > 0 ? (
+            <ResponsiveContainer width="100%" height={240}>
+              <RechartsLineChart data={rangeSnapshots} margin={{ top: 8, right: 12, left: -24, bottom: 0 }}>
+                <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
+                <XAxis dataKey="date" tick={{ fill: 'var(--muted)', fontSize: 11 }} axisLine={{ stroke: 'var(--border)' }} tickLine={false} tickFormatter={shortDateLabel} />
+                <YAxis tick={{ fill: 'var(--muted)', fontSize: 11 }} axisLine={{ stroke: 'var(--border)' }} tickLine={false} allowDecimals={false} />
+                <Tooltip contentStyle={{ background: 'var(--surface)', border: '1.5px solid var(--border)', borderRadius: 12, color: 'var(--text)' }} />
+                <Legend />
+                <Line type="monotone" dataKey="notebooks" stroke="var(--accent)" strokeWidth={2.5} dot={false} name="Notebooks" />
+                <Line type="monotone" dataKey="datasets" stroke="var(--secondary)" strokeWidth={2.5} dot={false} name="Datasets" />
+                <Line type="monotone" dataKey="competitions" stroke="var(--good)" strokeWidth={2.5} dot={false} name="Competitions" />
+              </RechartsLineChart>
+            </ResponsiveContainer>
+          ) : (
+            <ChartEmpty title="Activity over time" message="No snapshot activity data found." />
+          )}
+        </div>
+
+        {/* Metric 4: Achievement Distribution */}
+        <div className="card chart-card">
+          <p className="eyebrow">Recognition breakdown</p>
+          <h3>Achievement Distribution</h3>
+          {hasMedals ? (
+            <div className="donut-row github-donut-row" style={{ marginTop: '0.2rem', justifyContent: 'center' }}>
+              <DonutChart segments={medalSegments} label={totalMedals} sublabel="Medals" />
+              <div className="difficulty-legend" style={{ marginLeft: '1rem' }}>
+                {medalSegments.map(s => (
+                  <div key={s.name} className="diff-item">
+                    <span className="diff-dot" style={{ background: s.color }} />
+                    {s.name} <strong>{s.value}</strong>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <ChartEmpty title="Medals won" message="No medals won across Kaggle categories." />
+          )}
+        </div>
+      </div>
+
+      <div className="insight-below-row" style={{ marginTop: '1.5rem' }}>
+        {/* Metric 2: Competition Rankings */}
+        <div className="card chart-card">
+          <p className="eyebrow">Performance benchmarking</p>
+          <h3>Competition Performance Trend</h3>
+          {sortedCompetitions.length > 0 ? (
+            <div>
+              <div className="stats-row inner" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.8rem' }}>
+                <StatCard icon="🏆" value={bestRank ? `#${bestRank}` : 'N/A'} label="Best Rank" />
+                <StatCard icon="📈" value={bestPercentile !== null ? `Top ${bestPercentile}%` : 'N/A'} label="Best Percentile" />
+              </div>
+              <ResponsiveContainer width="100%" height={160}>
+                <AreaChart data={sortedCompetitions} margin={{ top: 8, right: 12, left: -22, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="compFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--warn)" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="var(--warn)" stopOpacity={0.01} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
+                  <XAxis dataKey="date" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} />
+                  <YAxis tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} domain={[0, 100]} reversed />
+                  <Tooltip contentStyle={{ background: 'var(--surface)', border: '1.5px solid var(--border)', borderRadius: 12 }} formatter={(val) => [`Top ${val}%`, 'Percentile']} />
+                  <Area type="monotone" dataKey="percentile" stroke="var(--warn)" strokeWidth={2.5} fill="url(#compFill)" name="percentile" />
+                </AreaChart>
+              </ResponsiveContainer>
+              <div style={{ maxHeight: '140px', overflowY: 'auto', marginTop: '0.8rem' }}>
+                <table style={{ width: '100%', fontSize: '0.8rem', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--muted)', textAlign: 'left' }}>
+                      <th style={{ padding: '0.3rem 0.5rem' }}>Name</th>
+                      <th style={{ padding: '0.3rem 0.5rem', textAlign: 'center' }}>Rank</th>
+                      <th style={{ padding: '0.3rem 0.5rem', textAlign: 'right' }}>Percentile</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedCompetitions.map((c, i) => (
+                      <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
+                        <td style={{ padding: '0.3rem 0.5rem', fontWeight: 600 }}>{c.title}</td>
+                        <td style={{ padding: '0.3rem 0.5rem', textAlign: 'center' }}>{c.rank ? `#${c.rank}` : 'N/A'}</td>
+                        <td style={{ padding: '0.3rem 0.5rem', textAlign: 'right', fontWeight: 600 }}>Top {c.percentile}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            <ChartEmpty title="Competitions" message="No competition participation recorded." />
+          )}
+        </div>
+
+        {/* Metric 5: Work Impact Scatter Correlation */}
+        <div className="card chart-card">
+          <p className="eyebrow">Community engagement &amp; reach</p>
+          <h3>Work Impact Correlation</h3>
+          {hasImpactData ? (
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between' }}>
+              <p className="muted" style={{ fontSize: '0.78rem', margin: '0 0 0.8rem 0' }}>Plotting publications by community Votes (X-axis) and Downloads (Y-axis).</p>
+              <ResponsiveContainer width="100%" height={210}>
+                <ScatterChart margin={{ top: 8, right: 12, left: -22, bottom: 0 }}>
+                  <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
+                  <XAxis type="number" dataKey="votes" name="Votes" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} />
+                  <YAxis type="number" dataKey="downloads" name="Downloads" tick={{ fill: 'var(--muted)', fontSize: 10 }} tickLine={false} />
+                  <Tooltip contentStyle={{ background: 'var(--surface)', border: '1.5px solid var(--border)', borderRadius: 12 }} />
+                  <Legend />
+                  <Scatter name="Datasets (Downloads)" data={dsImpact} fill="var(--secondary)" />
+                  <Scatter name="Notebooks (Votes)" data={nbImpact} fill="var(--accent)" />
+                </ScatterChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <ChartEmpty title="Work Impact" message="Add datasets and notebooks to show impact correlation." />
+          )}
+        </div>
+      </div>
+
+      {/* Teacher Diagnostics Expert Recommendations Card */}
+      <div className="card github-insight-card" style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div>
+            <p className="eyebrow">Academic context &amp; Diagnostics</p>
+            <h3 style={{ margin: '0.1rem 0 0 0' }}>Teacher Kaggle Diagnostics</h3>
           </div>
+          <span className={`landing-badge archetype-tag ${arc.class}`} style={{
+            fontSize: '0.78rem', padding: '0.35rem 0.8rem', borderRadius: '99px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em',
+            background: arc.class === 'is-excellent' ? 'rgba(52,211,153,0.12)' : (arc.class === 'is-steady' ? 'rgba(251,191,36,0.1)' : 'rgba(251,113,133,0.1)'),
+            border: '1px solid currentColor', color: 'currentColor'
+          }}>
+            {arc.name}
+          </span>
         </div>
-      )}
-
-      {/* Activity Timeline */}
-      {activity?.activity_timeline && activity.activity_timeline.length > 0 && (
-        <div className="card">
-          <p className="eyebrow">Activity timeline</p>
-          <h3>Monthly notebook activity</h3>
-          <BarChart
-            data={activity.activity_timeline}
-            labelKey="month" valueKey="count"
-            color="var(--secondary)" height={120}
-          />
+        <p className="teacher-insight" style={{ fontSize: '0.9rem', lineHeight: '1.55', margin: 0 }}>{arc.desc}</p>
+        <div style={{ marginTop: '0.4rem' }}>
+          <p className="eyebrow" style={{ fontSize: '0.68rem', color: 'var(--muted)', textTransform: 'uppercase', marginBottom: '0.3rem', fontWeight: 700 }}>Pedagogical Actions</p>
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+            {arc.rec.map((r, idx) => (
+              <li key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.4rem', fontSize: '0.82rem' }}>
+                <span style={{ color: 'var(--good)', fontWeight: 'bold' }}>✓</span>
+                <span>{r}</span>
+              </li>
+            ))}
+          </ul>
         </div>
-      )}
+      </div>
 
-      {/* Datasets List */}
-      {activity?.datasets_list && activity.datasets_list.length > 0 && (
-        <div className="card">
-          <p className="eyebrow">Published datasets</p>
-          <h3>Datasets by this student</h3>
-          <div className="repos-grid">
-            {activity.datasets_list.slice(0, 4).map((d, i) => (
-              <a key={i} href={d.url} target="_blank" rel="noreferrer" className="repo-card">
-                <h4 className="repo-name">📊 {d.title}</h4>
-                <div className="repo-meta">
-                  <span>👍 {d.votes}</span>
-                  <span>⬇️ {d.downloads}</span>
-                </div>
-                {d.last_updated && <p className="repo-date">Updated {fmtDate(d.last_updated)}</p>}
-              </a>
+      {/* Metric 3: Published Work Portfolio */}
+      <div className="card" style={{ marginTop: '1.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
+          <div>
+            <p className="eyebrow">Publications portfolio</p>
+            <h3>Notebooks &amp; Datasets Portfolio</h3>
+          </div>
+          <div className="range-selector">
+            {[{ value: 'all', label: 'All Work' }, { value: 'datasets', label: 'Datasets' }, { value: 'notebooks', label: 'Notebooks' }].map(opt => (
+              <button key={opt.value} className={`range-pill ${portfolioTab === opt.value ? 'is-active' : ''}`} onClick={() => { setPortfolioTab(opt.value); setExpandedCount(4); }}>{opt.label}</button>
             ))}
           </div>
         </div>
-      )}
 
-      {/* Notebooks List */}
-      {activity?.notebooks_list && activity.notebooks_list.length > 0 && (
-        <div className="card">
-          <p className="eyebrow">Published notebooks</p>
-          <h3>Notebooks by this student</h3>
-          <div className="repos-grid">
-            {activity.notebooks_list.slice(0, 4).map((n, i) => (
-              <a key={i} href={n.url} target="_blank" rel="noreferrer" className="repo-card">
-                <h4 className="repo-name">📓 {n.title}</h4>
-                <div className="repo-meta">
-                  <span>👍 {n.votes}</span>
-                  {n.language && <span>{n.language}</span>}
-                </div>
-                {n.last_run && <p className="repo-date">Last run {fmtDate(n.last_run)}</p>}
-              </a>
-            ))}
+        <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+          <div className="input-wrap" style={{ flex: 1, minWidth: '200px', height: '38px', padding: '0 0.6rem' }}>
+            <span style={{ color: 'var(--muted)' }}>🔍</span>
+            <input placeholder="Search projects by name..." value={query} onChange={e => setQuery(e.target.value)} style={{ border: 'none', background: 'transparent', outline: 'none', color: 'var(--text)', width: '100%', fontSize: '0.85rem' }} />
+          </div>
+          <div className="range-selector" style={{ height: '38px', display: 'flex', alignItems: 'center' }}>
+            <button className={`range-pill ${sort === 'votes' ? 'is-active' : ''}`} onClick={() => setSort('votes')}>Most Voted</button>
+            <button className={`range-pill ${sort === 'recent' ? 'is-active' : ''}`} onClick={() => setSort('recent')}>Recent</button>
           </div>
         </div>
-      )}
+
+        {portfolioItems.length > 0 ? (
+          <div>
+            <div className="repos-grid">
+              {portfolioItems.slice(0, expandedCount).map((item, i) => (
+                <a key={i} href={item.url} target="_blank" rel="noreferrer" className="repo-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '0.5rem' }}>
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.2rem' }}>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 700, color: item.type === 'dataset' ? 'var(--secondary)' : 'var(--accent)' }}>{item.badge}</span>
+                      {item.size > 0 && <span className="muted" style={{ fontSize: '0.68rem' }}>{parseFloat((item.size / 1024).toFixed(1))} KB</span>}
+                    </div>
+                    <h4 className="repo-name" style={{ fontSize: '0.9rem', marginBottom: '0.2rem' }}>{item.title}</h4>
+                  </div>
+                  <div className="repo-meta" style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border)', paddingTop: '0.4rem', fontSize: '0.78rem' }}>
+                    <div>👍 {item.votes} {item.downloads > 0 && `· ⬇️ ${item.downloads}`}</div>
+                    <span className="repo-date">{fmtDate(item.date)}</span>
+                  </div>
+                </a>
+              ))}
+            </div>
+            {portfolioItems.length > expandedCount ? (
+              <button className="cta-btn" onClick={() => setExpandedCount(prev => prev + 4)} style={{ width: '100%', marginTop: '1rem', padding: '0.5rem', fontSize: '0.8rem', background: 'transparent', color: 'var(--accent)', border: '1px dashed var(--border-hover)', borderRadius: '10px' }}>
+                Show More ({portfolioItems.length - expandedCount} remaining)
+              </button>
+            ) : expandedCount > 4 && (
+              <button className="cta-btn" onClick={() => setExpandedCount(4)} style={{ width: '100%', marginTop: '1rem', padding: '0.5rem', fontSize: '0.8rem', background: 'transparent', color: 'var(--accent)', border: '1px dashed var(--border-hover)', borderRadius: '10px' }}>
+                Collapse portfolio
+              </button>
+            )}
+          </div>
+        ) : (
+          <p className="muted" style={{ padding: '1.5rem', textAlign: 'center', background: 'var(--panel)', border: '1px dashed var(--border)', borderRadius: '12px' }}>No publications found.</p>
+        )}
+      </div>
     </section>
   )
 }

@@ -1,0 +1,92 @@
+{
+  "profile": {
+    "username": "gopi0505",
+    "profile_url": "https://www.kaggle.com/gopi0505",
+    "name": null,
+    "followers": 0,
+    "competitions_participated": 0,
+    "datasets": 0,
+    "notebooks": 7,
+    "medals": 0,
+    "total_dataset_votes": 0,
+    "total_notebook_votes": 1,
+    "api_authenticated": true,
+    "score": 15
+  },
+  "activity": {
+    "datasets_list": [],
+    "notebooks_list": [
+      {
+        "title": "Exercise: Arithmetic and Variables",
+        "url": "https://www.kaggle.com/code/gopi0505/exercise-arithmetic-and-variables",
+        "votes": 0,
+        "language": "",
+        "last_run": "2023-11-26T08:07:25.337Z",
+        "kernel_type": ""
+      },
+      {
+        "title": "Titanic Tutorial",
+        "url": "https://www.kaggle.com/code/gopi0505/titanic-tutorial",
+        "votes": 0,
+        "language": "",
+        "last_run": "2026-06-24T08:40:11.377Z",
+        "kernel_type": ""
+      },
+      {
+        "title": "dataclean",
+        "url": "https://www.kaggle.com/code/gopi0505/dataclean",
+        "votes": 0,
+        "language": "",
+        "last_run": "2026-02-05T03:34:29.617Z",
+        "kernel_type": ""
+      },
+      {
+        "title": "Exercise: Conditions and Conditional Statements",
+        "url": "https://www.kaggle.com/code/gopi0505/exercise-conditions-and-conditional-statements",
+        "votes": 0,
+        "language": "",
+        "last_run": "2023-11-26T09:18:21.213Z",
+        "kernel_type": ""
+      },
+      {
+        "title": "Exercise: Data Types",
+        "url": "https://www.kaggle.com/code/gopi0505/exercise-data-types",
+        "votes": 0,
+        "language": "",
+        "last_run": "2023-11-26T09:11:20.373Z",
+        "kernel_type": ""
+      },
+      {
+        "title": "Exercise: Intro to Lists",
+        "url": "https://www.kaggle.com/code/gopi0505/exercise-intro-to-lists",
+        "votes": 1,
+        "language": "",
+        "last_run": "2023-11-26T09:33:47.467Z",
+        "kernel_type": ""
+      },
+      {
+        "title": "Exercise: Functions",
+        "url": "https://www.kaggle.com/code/gopi0505/exercise-functions",
+        "votes": 0,
+        "language": "",
+        "last_run": "2023-11-26T08:51:48.96Z",
+        "kernel_type": ""
+      }
+    ],
+    "competitions_list": [],
+    "activity_timeline": [
+      {
+        "month": "2023-11",
+        "count": 5
+      },
+      {
+        "month": "2026-02",
+        "count": 1
+      },
+      {
+        "month": "2026-06",
+        "count": 1
+      }
+    ]
+  }
+}
